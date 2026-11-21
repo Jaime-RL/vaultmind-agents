@@ -1,0 +1,88 @@
+# CI: lint y tests de backend y frontend, y build de las imágenes Docker.
+# Corre en cada PR a develop o main y en cada push a esas ramas.
+# Ningún paso llama a un LLM ni necesita secretos (ver CLAUDE.md, regla 1).
+name: CI
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
+
+# Si llega un push nuevo a la misma PR, cancela la ejecución anterior.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --frozen
+      - name: Lint
+        run: uv run ruff check . && uv run ruff format --check .
+      - name: Tests
+        run: uv run pytest
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - name: Tipos al día con contracts/
+        run: npm run check:types
+      - name: Lint
+        run: npm run lint
+      - name: Tests
+        run: npm test
+      - name: Build (incluye comprobación de tipos)
+        run: npm run build
+
+  docker:
+    runs-on: ubuntu-latest
+    # Solo si el código ya pasa lint y tests: no merece la pena construir imágenes rotas.
+    needs: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build de la imagen de producción
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: prod
+          tags: vaultmind:ci
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: La imagen arranca y responde en /api/health
+        run: |
+          docker run -d --name vaultmind -p 8000:8000 vaultmind:ci
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8000/api/health; then exit 0; fi
+            sleep 1
+          done
+          docker logs vaultmind
+          exit 1
+      - name: Las imágenes de desarrollo también construyen
+        run: |
+          docker build --target backend-dev -t vaultmind-backend-dev .
+          docker build --target frontend-dev -t vaultmind-frontend-dev .

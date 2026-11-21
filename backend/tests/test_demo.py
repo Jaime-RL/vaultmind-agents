@@ -180,3 +180,11 @@ def test_without_demo_mode_and_key_research_is_unavailable(tmp_path):
 def test_missing_demo_file_fails_with_a_clear_message(tmp_path):
     with pytest.raises(FileNotFoundError, match="fixtures/"):
         DemoRun.load(tmp_path / "no-existe.json")
+
+
+def test_demo_notice_does_not_repeat_the_same_topic():
+    from runs.demo import demo_notice
+
+    same = demo_notice("Tema A", "tema a")
+    assert same.count("Tema A") + same.count("tema a") == 1
+    assert "pediste" in demo_notice("Otro", "Tema A")

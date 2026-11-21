@@ -83,10 +83,7 @@ async def _play(demo: DemoRun, run_id: str, requested_topic: str, sink: RunSink)
             run_id=run_id,
             ts=datetime.now(UTC),
             agent="system",
-            text=(
-                f"Modo demostración: pediste «{requested_topic}», pero se reproduce una "
-                f"investigación grabada sobre «{demo.topic}». No se llama a ningún modelo."
-            ),
+            text=demo_notice(requested_topic, demo.topic),
         )
     )
 
@@ -113,3 +110,16 @@ async def _play(demo: DemoRun, run_id: str, requested_topic: str, sink: RunSink)
             store.add_metric(metric.model_copy(update={"run_id": run_id}), baseline)
 
         await sink.emit(EVENT_ADAPTER.validate_python(data))
+
+
+def demo_notice(requested: str, recorded: str) -> str:
+    """Aviso inicial: deja claro que es una grabación y sobre qué tema."""
+    if requested.strip().lower() == recorded.strip().lower():
+        return (
+            f"Modo demostración: se reproduce una investigación grabada sobre «{recorded}». "
+            "No se llama a ningún modelo."
+        )
+    return (
+        f"Modo demostración: pediste «{requested}», pero se reproduce una investigación "
+        f"grabada sobre «{recorded}». No se llama a ningún modelo."
+    )

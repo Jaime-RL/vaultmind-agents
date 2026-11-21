@@ -29,3 +29,9 @@ Materia prima para la sección «Cómo se construyó con IA» del README. Apunta
 - **Qué funcionó:** tratar «respuesta rechazada por un validador» igual que «fallo del proveedor» (ambos son `LLMError`) simplificó la escalada a un solo `try/except`. Generar el fixture con los propios modelos del contrato en lugar de escribir JSON a mano: es válido por construcción y un test vigila que sus enlaces existan en la bóveda de demo.
 - **Qué costó o falló:** decidir cómo contar el coste de una escalada; se cobra también el intento fallido del SLM, para que el ahorro mostrado no sea optimista.
 - **Qué cambiaría:** los precios por defecto son orientativos; hay que fijarlos a los modelos reales antes de publicar cifras de ahorro.
+
+### 2026-11-21 · Persona A · Explorador, Investigador y orquestador
+- **Prompt:** «Agentes Explorador e Investigador (herramienta arXiv) y orquestador con límite de pasos».
+- **Qué funcionó:** separar lo determinista de lo que necesita criterio. Detectar lagunas lo hace el parser (gratis y exacto); el LLM solo elige cuáles investigar, y su elección se filtra contra la lista real para que no pueda inventarse lagunas. Igual con las fuentes: el Investigador solo conserva URLs que arXiv devolvió de verdad.
+- **Qué costó o falló:** el helper de tests intentaba añadir un atributo a `Tool`, que es inmutable (`frozen`). Se resolvió guardando el registro en la función manejadora.
+- **Qué cambiaría:** los prompts están pensados para modelos pequeños (un solo formato de salida con ejemplo), pero falta probarlos con modelos reales en las evals.

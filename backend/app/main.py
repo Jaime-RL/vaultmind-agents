@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.health import router as health_router
+from api.proposals import router as proposals_router
 from api.research import router as research_router
 from api.vault import router as vault_router
 from app.config import Settings, get_settings
@@ -48,6 +49,7 @@ def create_app(settings: Settings | None = None, services: Services | None = Non
     app.include_router(health_router, prefix="/api")
     app.include_router(vault_router, prefix="/api")
     app.include_router(research_router, prefix="/api")
+    app.include_router(proposals_router, prefix="/api")
     return app
 
 

@@ -2,22 +2,28 @@
 
 Multi-agent research copilot that grows your Obsidian vault, routing each task between small and large LLMs to cut cost.
 
-> **Borrador.** Secciones 2, 4 (agentes) y 5 escritas por la Persona A; las marcadas con *[Persona B]* están pendientes.
+![Demo de VaultMind: los agentes investigan, el grafo crece, se aprueba una nota y el panel del router muestra el ahorro](docs/demo.gif)
 
 ## 1. Qué es
 
-*[Persona B: problema, para quién y el momento mínimo de valor en una frase, con el GIF de la demo.]*
+**El problema:** escribir el estado del arte de un TFG lleva semanas, y la bóveda de Obsidian de un estudiante acaba llena de conceptos enlazados (`[[LoRA]]`, `[[Routing de modelos]]`) que nunca llegan a tener nota propia.
+
+**Para quién:** estudiantes que toman sus apuntes en Obsidian y preparan un trabajo de investigación.
+
+**Momento mínimo de valor:** escribes un tema y, en un minuto, un equipo de agentes te propone notas nuevas, con fuentes de arXiv y enlazadas a las que ya tenías, para que las apruebes con un clic.
 
 ## 2. Funcionalidades
 
 ### MVP
 
-| HU | Historia de usuario | Estado (backend) |
-| --- | --- | --- |
-| HU1 | Como estudiante, quiero ver mi bóveda como grafo para entender cómo se conectan mis notas. | `GET /api/vault` · hecho |
-| HU2 | Como estudiante, quiero lanzar una investigación sobre un tema y ver a los agentes trabajar en directo para ampliar mi estado del arte. | `POST /api/research` + SSE · hecho |
-| HU3 | Como estudiante, quiero revisar y aprobar las notas antes de que entren en mi bóveda para no llenarla de errores. | `GET/POST /api/proposals` · hecho |
-| HU4 | Como estudiante, quiero ver qué modelo hizo cada tarea y cuánto costó para saber cuánto ahorra el router. | `GET /api/metrics` · hecho |
+| HU | Historia de usuario | Backend | Frontend |
+| --- | --- | --- | --- |
+| HU1 | Como estudiante, quiero ver mi bóveda como grafo para entender cómo se conectan mis notas. | `GET /api/vault` | Grafo 3D con las notas propuestas creciendo en directo |
+| HU2 | Como estudiante, quiero lanzar una investigación sobre un tema y ver a los agentes trabajar en directo para ampliar mi estado del arte. | `POST /api/research` + SSE | Panel de investigación con los eventos de cada agente |
+| HU3 | Como estudiante, quiero revisar y aprobar las notas antes de que entren en mi bóveda para no llenarla de errores. | `GET/POST /api/proposals` | Revisión con la nota renderizada, fuentes y aprobar / rechazar |
+| HU4 | Como estudiante, quiero ver qué modelo hizo cada tarea y cuánto costó para saber cuánto ahorra el router. | `GET /api/metrics` | Panel con ahorro, costes y el modelo de cada tarea |
+
+Las cuatro están hechas y con tests en backend y frontend.
 
 Cómo trabajan los agentes en cada investigación:
 
@@ -37,15 +43,37 @@ Cómo trabajan los agentes en cada investigación:
 
 ## 3. Cómo ejecutarlo
 
-*[Persona B: requisitos, variables de entorno, Docker, tests del frontend y URL pública.]*
+**URL pública:** *[pendiente de desplegar]*. Funciona en **modo demo** (`DEMO_MODE=true`): reproduce una investigación grabada, así no necesita clave de API y ningún visitante puede gastar saldo. Para investigaciones reales, ejecútalo en local con tu clave.
 
-Backend por separado: ver [`backend/README.md`](backend/README.md). Variables de entorno documentadas en [`.env.example`](.env.example).
+**Requisitos:** Docker, o bien Python ≥ 3.12 con [uv](https://docs.astral.sh/uv/) y Node ≥ 22. También hay un DevContainer (Python 3.12, Node 24 y uv) para abrir el proyecto listo en VS Code.
 
-La URL pública funciona en **modo demo** (`DEMO_MODE=true`): reproduce una investigación grabada, así no necesita clave de API y ningún visitante puede gastar saldo. Para investigaciones reales, ejecútalo en local con tu clave.
+**Variables de entorno:** copia [`.env.example`](.env.example) a `.env`. Para investigar de verdad basta con `LLM_API_KEY` (OpenRouter); los modelos por defecto son Qwen2.5 7B y 72B Instruct. Sin clave, pon `DEMO_MODE=true`.
+
+```bash
+# Con Docker (desarrollo): backend en :8000 y frontend en :5173
+docker compose up --build
+VAULT_DIR=/ruta/a/tu/boveda docker compose up      # con tu bóveda en lugar de la de demo
+
+# Imagen de producción (un solo servicio: FastAPI sirve la API y el frontend) en :8080
+docker compose --profile prod up --build prod
+
+# Sin Docker
+cd backend && uv sync && uv run uvicorn app.main:app --reload    # :8000
+cd frontend && npm ci && npm run dev                              # :5173 (reenvía /api al backend)
+```
+
+**Tests:**
+
+```bash
+cd backend && uv run pytest && uv run ruff check .      # ningún test llama a un LLM ni a internet
+cd frontend && npm test && npm run lint && npm run build
+```
+
+La CI (GitHub Actions) ejecuta todo lo anterior en cada PR y construye la imagen de producción comprobando que responde en `/api/health`. Más detalle del backend en [`backend/README.md`](backend/README.md).
 
 ## 4. Cómo se construyó con IA
 
-*[Persona B: flujo de trabajo con ramas, Conventional Commits y DevContainer.]*
+Dos personas, cada una con su agente de código (Claude Code), siguiendo el flujo del curso: `main` y `develop`, una rama `feature/...` por historia de usuario, Conventional Commits y PR a `develop` revisada por la otra persona con la CI en verde.
 
 ### Agentes de código y reglas
 
@@ -75,20 +103,27 @@ Empieza con un plan corto (ficheros a crear, tests que escribirás y orden). Esp
 - **Validar para escalar:** una respuesta del SLM con JSON roto o una herramienta inexistente se trata como un fallo y se repite con el modelo grande.
 - **Una prueba de punta a punta** con el cableado de producción y la red simulada detectó que todas las piezas encajan antes de gastar un céntimo en APIs.
 
+- **Tipos del frontend generados desde `contracts/`** (`npm run gen:types`) en lugar de escritos a mano; la CI falla si se desincronizan.
+- **Producción como un solo servicio** (FastAPI sirve el frontend compilado): sin CORS ni una URL distinta por entorno.
+- **Probar la interfaz en un navegador real** (Chrome sin interfaz) además de los tests: confirmó el flujo completo y sirvió para grabar el GIF de la demo.
+
 ### Lo que costó
 
 - Errores que los tests no veían: una ruta relativa que solo fallaba al arrancar el servidor desde otra carpeta y una regla del `.gitignore` que ignoraba en silencio `backend/vault/`. Lección: arrancar la app real y revisar `git status` además de pasar los tests.
 - Decidir cómo contar el coste de una escalada (se cobra también el intento fallido del SLM, para no inflar el ahorro).
+- Compatibilidad de versiones: TypeScript 7 no es compatible con `typescript-eslint`, así que se fijó la 6.0. Y la regla de React que prohíbe actualizar estado de forma síncrona dentro de un efecto obligó a reorganizar la carga de datos de los paneles.
 
 El registro completo está en [`docs/ai-log.md`](docs/ai-log.md).
 
 ## 5. Estado y próximos pasos
 
-**Estado del backend:** las cuatro historias del MVP están implementadas y probadas (tests unitarios y una prueba de punta a punta con la red simulada).
+**Estado:** las cuatro historias del MVP están implementadas en backend y frontend, con más de 230 tests (incluida una prueba de punta a punta con la red simulada) y la app completa verificada en un navegador real en modo demo.
 
-**Pendiente antes de la entrega:**
+**Modelos:** Qwen2.5 7B Instruct como SLM y Qwen2.5 72B Instruct como modelo grande (misma familia, para que la comparación mida el efecto del tamaño), con sus precios de OpenRouter.
 
-- Modelos: Qwen2.5 7B Instruct como SLM y Qwen2.5 72B Instruct como modelo grande (misma familia, para que la comparación mida el efecto del tamaño), con sus precios de OpenRouter. Falta ejecutar las evals (`backend/evals`) con una clave para obtener la tasa de acierto y el ahorro reales. Sus resultados decidirán qué tareas puede hacer el SLM y darán la cifra de ahorro real; hasta entonces el ahorro del fixture (40 %) es solo ilustrativo.
-- *[Persona B: estado del frontend y del despliegue.]*
+**Pendiente:**
+
+- Ejecutar las evals (`backend/evals`) con una clave para obtener la tasa de acierto y el ahorro reales. El 31 % de ahorro de la demo usa precios reales pero tokens de ejemplo: es ilustrativo.
+- Publicar la URL pública (imagen de producción en modo demo).
 
 **Próximos pasos:** ver el backlog de la sección 2.

@@ -65,3 +65,9 @@ Materia prima para la sección «Cómo se construyó con IA» del README. Apunta
 - **Qué funcionó:** pedir al agente que comprobara las dependencias entre paquetes antes de instalar: detectó que TypeScript 7 (la última) no es compatible con `typescript-eslint`, y se fijó `~6.0.3`. Generar los tipos TypeScript desde los esquemas JSON (`npm run gen:types`) en lugar de escribirlos a mano.
 - **Qué costó o falló:** el entorno del agente no podía descargar imágenes de Docker, así que el Dockerfile se valida en la CI (build + arranque de la imagen + `/api/health`) y no en local.
 - **Qué cambiaría:** decidir desde el día 1 que producción es un solo servicio (FastAPI sirve el frontend compilado): evita CORS y una URL distinta por entorno.
+
+### 2026-11-21 · Persona A · Frontend de las cuatro historias (HU1–HU4)
+- **Prompt:** «Tenemos que terminar hoy»: la Persona A, ya terminado el backend, construye las cuatro pantallas sobre el esqueleto de la Persona B.
+- **Qué funcionó:** reutilizar los tipos generados desde `contracts/` y probar cada panel con `fetch` y `EventSource` simulados. Recorrer la app en un Chrome sin interfaz contra el backend real en modo demo verificó el flujo completo (investigar → ver eventos → aprobar → el grafo se actualiza) y sirvió para grabar el GIF del README.
+- **Qué costó o falló:** el lint de React (`set-state-in-effect`) obligó a reorganizar la carga de datos; TypeScript estricto marcó dos accesos posiblemente indefinidos. El backend manda eventos SSE con nombre (`event: <tipo>`), así que `onmessage` no los recibe: hay que escuchar cada tipo con `addEventListener`.
+- **Qué cambiaría:** el grafo 3D (three.js) pesa 1,5 MB; se carga aparte con `React.lazy` para no retrasar la página.

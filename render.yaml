@@ -1,0 +1,24 @@
+# Despliegue en Render como Blueprint (New → Blueprint → este repositorio).
+# Un único servicio web: la imagen `prod` del Dockerfile sirve la API y el frontend.
+#
+# Plan gratuito: se duerme tras 15 min sin tráfico (despierta en ~1 min con la
+# siguiente visita) y el disco es efímero: SQLite y las notas aprobadas en
+# _copilot/ se pierden al reiniciar. Para la URL pública, con el modo demo, basta.
+services:
+  - type: web
+    name: vaultmind
+    runtime: docker
+    plan: free
+    branch: main
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    envVars:
+      # Investigación grabada: sin clave de API y sin gasto. Para investigar de verdad,
+      # pon DEMO_MODE=false y define LLM_API_KEY en el panel de Render (nunca aquí).
+      - key: DEMO_MODE
+        value: "true"
+      - key: DEMO_SPEED
+        value: "1.5"
+      - key: MAX_CONCURRENT_RUNS
+        value: "3"

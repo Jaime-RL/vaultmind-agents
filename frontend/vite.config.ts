@@ -14,6 +14,11 @@ const proxyTarget = process.env.VITE_PROXY_TARGET ?? 'http://localhost:8000'
 
 export default defineConfig({
   plugins: [react()],
+  build: {
+    // El grafo 3D (three.js) ocupa ~1,5 MB, pero va en un trozo aparte que se carga
+    // con React.lazy solo al mostrar el grafo: no retrasa la carga inicial.
+    chunkSizeWarningLimit: 1600,
+  },
   server: {
     host: true,
     port: 5173,

@@ -1,0 +1,40 @@
+// Entorno de desarrollo en un clic (VS Code «Reopen in Container» o GitHub Codespaces).
+// Trae las mismas versiones que el Dockerfile: Python 3.12, Node 24 y uv.
+{
+  "name": "VaultMind",
+  "image": "mcr.microsoft.com/devcontainers/python:3.12",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": { "version": "24" },
+    "ghcr.io/va-h/devcontainers-features/uv:1": {},
+    // Permite ejecutar `docker compose up` desde dentro del contenedor.
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+  },
+  "containerEnv": {
+    // Igual que en el Dockerfile: el entorno virtual fuera de la carpeta del proyecto.
+    "UV_PROJECT_ENVIRONMENT": "/home/vscode/.venv",
+    "UV_LINK_MODE": "copy"
+  },
+  // Instala las dependencias de backend y frontend al crear el contenedor.
+  "postCreateCommand": "cd backend && uv sync --frozen && cd ../frontend && npm ci --no-audit --no-fund",
+  "forwardPorts": [8000, 5173],
+  "portsAttributes": {
+    "8000": { "label": "Backend (FastAPI)" },
+    "5173": { "label": "Frontend (Vite)", "onAutoForward": "openBrowser" }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "charliermarsh.ruff",
+        "dbaeumer.vscode-eslint",
+        "vitest.explorer",
+        "ms-azuretools.vscode-containers",
+        "anthropic.claude-code"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/home/vscode/.venv/bin/python",
+        "[python]": { "editor.defaultFormatter": "charliermarsh.ruff" }
+      }
+    }
+  }
+}

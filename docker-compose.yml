@@ -24,10 +24,15 @@ services:
       # (VAULT_PATH=/home/usuario/...) y aquí no existirían.
       VAULT_PATH: /app/demo-vault
       DATABASE_PATH: /app/data/vaultmind.db
+      # Sin clave de API, DEMO_MODE=true reproduce una investigación grabada: la
+      # interfaz se puede desarrollar entera sin gastar saldo. Se cambia en .env.
+      DEMO_MODE: ${DEMO_MODE:-true}
+      DEMO_SPEED: ${DEMO_SPEED:-3}
     volumes:
       # Código montado para que uvicorn --reload vea los cambios al instante.
       - ./backend:/app/backend
       - ./contracts:/app/contracts:ro
+      - ./fixtures:/app/fixtures:ro
       # La bóveda: la de demostración por defecto. Para usar la tuya:
       #   VAULT_DIR=/ruta/absoluta/a/tu/boveda docker compose up
       - ${VAULT_DIR:-./demo-vault}:/app/demo-vault
@@ -51,10 +56,11 @@ services:
       VITE_PROXY_TARGET: http://backend:8000
       # Pon true si los cambios no recargan (carpeta montada desde Windows o macOS).
       VITE_USE_POLLING: ${VITE_USE_POLLING:-false}
-      VITE_USE_MOCKS: ${VITE_USE_MOCKS:-false}
     volumes:
       - ./frontend:/app/frontend
       - ./contracts:/app/contracts:ro
+      # Los tests del frontend reproducen fixtures/run_example.jsonl.
+      - ./fixtures:/app/fixtures:ro
       # Volumen anónimo: conserva el node_modules de la imagen (Linux) en lugar de
       # que lo tape el del host montado arriba (que puede ser de otro sistema operativo).
       - /app/frontend/node_modules

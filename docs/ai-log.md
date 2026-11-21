@@ -53,3 +53,9 @@ Materia prima para la sección «Cómo se construyó con IA» del README. Apunta
 - **Qué funcionó:** comprobar el identificador y el precio del modelo en OpenRouter (y que admite tool calling) antes de configurarlo, y verificar en arxiv.org los papers que citan las notas de la demo para no publicar fuentes inventadas. La demo reutiliza el camino real (SSE, SQLite, propuestas, métricas): solo cambia de dónde salen los eventos.
 - **Qué costó o falló:** un reemplazo con expresión regular en el script del fixture borró de más (tres llamadas que el formateador había partido en varias líneas). Se detectó revisando el diff antes de seguir. Lección: tras una edición automática, mirar el diff.
 - **Qué cambiaría:** si la reproducción fallara a mitad, el flujo SSE quedaría abierto; se añadió que la demo cierre siempre con `error`, igual que una investigación real.
+
+### 2026-11-21 · Persona A · Modelo grande y límites de la API pública
+- **Prompt:** «Continúa» (con lo que no necesitaba decisión).
+- **Qué funcionó:** elegir el modelo grande de la misma familia que el SLM (Qwen2.5 72B frente a 7B) y comprobar en OpenRouter su precio y que admite tool calling, imprescindible porque el Investigador puede escalar a él en mitad del bucle de herramientas.
+- **Qué costó o falló:** con precios reales el ahorro de la demo bajó del 40 % al 31 %: el 72B es barato. Es la cifra honesta; el ahorro real lo dirán las evals.
+- **Qué cambiaría:** el límite de investigaciones simultáneas es global; con usuarios reales convendría un límite por IP.

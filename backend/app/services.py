@@ -44,6 +44,8 @@ def build_services(
             demo=(
                 DemoRun.load(DEMO_FILE, speed=settings.demo_speed) if settings.demo_mode else None
             ),
+            max_concurrent=settings.max_concurrent_runs,
+            retention_s=settings.finished_run_retention_s,
         ),
     )
 

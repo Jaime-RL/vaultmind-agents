@@ -22,6 +22,11 @@ Con `DEMO_MODE=true`, `POST /api/research` no llama a ningún modelo: reproduce 
 DEMO_MODE=true DEMO_SPEED=2 uv run uvicorn app.main:app
 ```
 
+### Límites de la API pública
+
+- `MAX_CONCURRENT_RUNS` (3 por defecto): investigaciones a la vez; las siguientes reciben **429**.
+- `FINISHED_RUN_RETENTION_S` (300): segundos que una investigación terminada sigue en memoria; después se reproduce desde SQLite.
+
 ## Endpoints
 
 | Endpoint | Qué hace |

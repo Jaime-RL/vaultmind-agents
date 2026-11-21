@@ -7,7 +7,7 @@ from sse_starlette.sse import EventSourceResponse
 from api.deps import get_services
 from app.contracts import ResearchRequest, ResearchResponse
 from app.services import Services
-from runs import LLMNotConfiguredError, RunNotFoundError
+from runs import LLMNotConfiguredError, RunNotFoundError, TooManyRunsError
 from vault import VaultNotFoundError
 
 router = APIRouter(tags=["research"])
@@ -20,6 +20,8 @@ async def start_research(request: ResearchRequest, services: ServicesDep) -> Res
     """Lanza una investigación en segundo plano y devuelve su run_id al momento."""
     try:
         run_id = await services.runs.start(request.topic.strip())
+    except TooManyRunsError as exc:
+        raise HTTPException(status_code=429, detail=str(exc)) from exc
     except LLMNotConfiguredError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except VaultNotFoundError as exc:

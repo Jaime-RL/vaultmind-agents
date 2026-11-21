@@ -117,5 +117,6 @@ describe('wikilinksToMarkdown', () => {
     expect(wikilinksToMarkdown('[[SLM]]')).toBe('[SLM](wikilink:SLM)')
     expect(wikilinksToMarkdown('[[a/b|alias]]')).toBe('[alias](wikilink:a%2Fb)')
     expect(wikilinksToMarkdown('[[Nota#Sección]]')).toBe('[Nota](wikilink:Nota)')
+    expect(wikilinksToMarkdown('[[agentes/Tool calling]]')).toBe('[Tool calling](wikilink:agentes%2FTool%20calling)')
   })
 })

@@ -5,7 +5,8 @@ export const WIKI_PREFIX = 'wikilink:'
 
 export function wikilinksToMarkdown(markdown: string): string {
   return markdown.replace(WIKILINK, (_match, target: string, alias?: string) => {
-    const label = (alias ?? target).trim()
+    // Sin alias, Obsidian muestra el nombre de la nota, no su ruta: «agentes/Tool calling» → «Tool calling».
+    const label = (alias ?? target.split('/').pop() ?? target).trim()
     return `[${label}](${WIKI_PREFIX}${encodeURIComponent(target.trim())})`
   })
 }

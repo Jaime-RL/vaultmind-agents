@@ -3,14 +3,24 @@
 import json
 from typing import Any
 
+import httpx
 from openai import APIError, AsyncOpenAI
 
 from llm.base import LLMError, LLMResponse, Message, ToolCall, ToolSpec
 
 
 class OpenAICompatClient:
-    def __init__(self, base_url: str, api_key: str, timeout: float = 60.0):
-        self._client = AsyncOpenAI(base_url=base_url, api_key=api_key, timeout=timeout)
+    def __init__(
+        self,
+        base_url: str,
+        api_key: str,
+        timeout: float = 60.0,
+        http_client: httpx.AsyncClient | None = None,
+    ):
+        # http_client permite inyectar un transporte simulado en los tests de punta a punta.
+        self._client = AsyncOpenAI(
+            base_url=base_url, api_key=api_key, timeout=timeout, http_client=http_client
+        )
 
     async def complete(
         self,

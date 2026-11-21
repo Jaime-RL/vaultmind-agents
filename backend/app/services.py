@@ -6,6 +6,8 @@ SQLite). Los tests construyen sus propios Services con piezas falsas.
 
 from dataclasses import dataclass
 
+import httpx
+
 from agents import ArxivClient
 from app.config import Settings
 from llm.openai_compat import OpenAICompatClient
@@ -20,25 +22,34 @@ class Services:
     runs: RunManager
 
 
-def build_services(settings: Settings) -> Services:
+def build_services(
+    settings: Settings,
+    *,
+    llm_http: httpx.AsyncClient | None = None,
+    arxiv_http: httpx.AsyncClient | None = None,
+    arxiv_min_interval: float = 3.0,
+) -> Services:
+    """Los parámetros con * solo se usan en tests de punta a punta, para simular la red."""
     store = Store(settings.database_path)
     return Services(
         store=store,
         runs=RunManager(
             store=store,
             vault_path=settings.vault_path,
-            router_factory=router_factory(settings),
-            search_tool=ArxivClient().as_tool(),
+            router_factory=router_factory(settings, llm_http),
+            search_tool=ArxivClient(http=arxiv_http, min_interval=arxiv_min_interval).as_tool(),
         ),
     )
 
 
-def router_factory(settings: Settings):
+def router_factory(settings: Settings, http_client: httpx.AsyncClient | None = None):
     """Devuelve cómo crear un SmartRoute, o None si el LLM no está configurado."""
     api_key = settings.llm_api_key.get_secret_value()
     if not (api_key and settings.slm_model and settings.large_model):
         return None
-    client = OpenAICompatClient(base_url=settings.llm_base_url, api_key=api_key)
+    client = OpenAICompatClient(
+        base_url=settings.llm_base_url, api_key=api_key, http_client=http_client
+    )
 
     def factory() -> SmartRoute:
         # Un SmartRoute por investigación: sus registros solo contienen esa investigación.

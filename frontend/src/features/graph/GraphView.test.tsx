@@ -73,6 +73,6 @@ describe('GraphView', () => {
     const graph = await screen.findByRole('list', { name: 'grafo' })
     expect(graph).toHaveTextContent('LoRA')
     expect(graph).toHaveTextContent('2 enlaces dibujados')
-    expect(screen.getByText('2 notas · 1 enlaces · 1 propuestas')).toBeInTheDocument()
+    expect(screen.getByText('2 notas · 1 enlaces · 1 propuesta')).toBeInTheDocument()
   })
 })

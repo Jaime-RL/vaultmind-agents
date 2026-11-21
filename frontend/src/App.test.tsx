@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest'
 import App from './App'
 import type { GraphData } from './features/graph/graphData'
 import { FakeEventSource, installFakeEventSource } from './test/fakeEventSource'
-import { loadRunExample } from './test/fixtures'
+import { loadDemoProposals, loadRunExample } from './test/fixtures'
 
 // El grafo 3D se sustituye por una lista con los nodos que recibiría (jsdom no tiene WebGL).
 vi.mock('./features/graph/VaultGraph3D', () => ({
@@ -115,5 +115,33 @@ describe('App: investigación en directo (HU2)', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('demasiadas investigaciones en marcha')
     expect(FakeEventSource.instances).toHaveLength(0)
+  })
+})
+
+describe('App: revisión de notas (HU3)', () => {
+  it('aprueba una nota: la guarda vía API, la quita de pendientes y recarga la bóveda', async () => {
+    installFakeEventSource()
+    const [first, ...rest] = loadDemoProposals()
+    const fetchMock = stubApi({
+      '/api/health': Response.json({ status: 'ok' }),
+      '/api/vault': Response.json(VAULT),
+      '/api/proposals?status=pending': Response.json([first, ...rest]),
+      [`/api/proposals/${first!.id}`]: Response.json({ ...first, status: 'approved' }),
+    })
+    render(<App />)
+
+    const tab = await screen.findByRole('tab', { name: `Notas${rest.length + 1}` })
+    await userEvent.click(tab)
+    await userEvent.click(screen.getByRole('button', { name: 'Aprobar' }))
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `/api/proposals/${first!.id}`,
+      expect.objectContaining({ method: 'POST', body: JSON.stringify({ action: 'approve' }) }),
+    )
+    await vi.waitFor(() =>
+      expect(screen.getByRole('tab', { name: `Notas${rest.length}` })).toBeInTheDocument(),
+    )
+    // La bóveda se pide otra vez para que el grafo muestre la nota ya guardada en _copilot/.
+    expect(fetchMock.mock.calls.filter(([url]) => url === '/api/vault')).toHaveLength(2)
   })
 })

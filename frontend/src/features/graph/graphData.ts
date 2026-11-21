@@ -51,6 +51,7 @@ export function buildGraphData(vault: VaultGraph, proposed: ProposedNode[] = [])
   }
 
   const known = new Set(vault.nodes.map((node) => node.id))
+  const knownTitles = new Set(vault.nodes.map((node) => node.title))
 
   const nodes: GraphNode[] = vault.nodes.map((node) => {
     // id = ruta sin extensión ("rag/Chunking"): la primera parte es la carpeta.
@@ -70,8 +71,9 @@ export function buildGraphData(vault: VaultGraph, proposed: ProposedNode[] = [])
   for (const proposal of proposed) {
     // Rechazadas: desaparecen del grafo. Aprobadas: siguen, ya como parte de la bóveda.
     if (proposal.status === 'rejected') continue
-    // Si la nota se aprobó y la bóveda ya se recargó con ella, no la duplicamos.
-    if (known.has(proposal.id)) continue
+    // Una nota aprobada se escribe en _copilot/<título>.md: cuando la bóveda se recarga
+    // ya aparece como nota normal, así que no la duplicamos como propuesta.
+    if (proposal.status === 'approved' && knownTitles.has(proposal.title)) continue
     nodes.push({
       id: proposal.id,
       title: proposal.title,

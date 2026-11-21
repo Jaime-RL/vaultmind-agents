@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { getHealth } from './api/client'
 import { Tabs } from './components/Tabs'
 import { AgentsPanel } from './features/agents-panel/AgentsPanel'
@@ -6,6 +6,8 @@ import { ResearchForm } from './features/agents-panel/ResearchForm'
 import { useResearchRun } from './features/agents-panel/useResearchRun'
 import { GraphView } from './features/graph/GraphView'
 import { useVaultGraph } from './features/graph/useVaultGraph'
+import { ReviewPanel } from './features/review/ReviewPanel'
+import { useProposals } from './features/review/useProposals'
 import './App.css'
 
 type BackendStatus = 'checking' | 'ok' | 'down'
@@ -41,6 +43,31 @@ export default function App() {
   // La cámara del grafo se acerca a la última nota propuesta.
   const focusId = run.state.proposed.at(-1)?.id
 
+  const { markResolved } = run
+  const onResolved = useCallback(
+    (id: string, resolution: 'approved' | 'rejected') => {
+      markResolved(id, resolution)
+      // Una nota aprobada ya existe en la bóveda (en _copilot/): recargamos el grafo.
+      if (resolution === 'approved') reloadVault()
+    },
+    [markResolved, reloadVault],
+  )
+  const proposals = useProposals({
+    // Se vuelve a pedir la lista cuando llega una propuesta o termina la investigación.
+    refreshKey: `${run.state.runId ?? ''}:${run.state.proposed.length}:${run.state.status}`,
+    onResolved,
+  })
+  const pendingCount = proposals.state.status === 'ready' ? proposals.state.proposals.length : 0
+
+  // Notas de la bóveda (por id y por título) para marcar los [[enlaces]] que ya existen.
+  const existingNotes = useMemo(
+    () =>
+      new Set(
+        vaultState.status === 'ready' ? vaultState.vault.nodes.flatMap((n) => [n.id, n.title]) : [],
+      ),
+    [vaultState],
+  )
+
   return (
     <div className="app">
       <header className="topbar">
@@ -74,6 +101,21 @@ export default function App() {
                 id: 'agents',
                 label: 'Agentes',
                 content: <AgentsPanel state={run.state} onReconnect={run.reconnect} />,
+              },
+              {
+                id: 'review',
+                label: 'Notas',
+                badge: pendingCount,
+                content: (
+                  <ReviewPanel
+                    state={proposals.state}
+                    busyId={proposals.busyId}
+                    actionError={proposals.actionError}
+                    existing={existingNotes}
+                    onResolve={proposals.resolve}
+                    onRetry={() => void proposals.reload()}
+                  />
+                ),
               },
             ]}
           />

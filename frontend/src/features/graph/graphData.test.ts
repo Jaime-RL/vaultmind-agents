@@ -69,3 +69,23 @@ describe('buildGraphData', () => {
     expect(data.links.some((l) => l.proposed)).toBe(false)
   })
 })
+
+describe('buildGraphData: notas aprobadas', () => {
+  it('no duplica una nota aprobada cuando la bóveda recargada ya la contiene', () => {
+    const reloaded: VaultGraph = {
+      ...vault,
+      nodes: [...vault.nodes, { id: '_copilot/LoRA', title: 'LoRA', path: '_copilot/LoRA.md', tags: [] }],
+    }
+
+    const data = buildGraphData(reloaded, [proposal({ status: 'approved' })])
+
+    expect(data.nodes.filter((n) => n.title === 'LoRA')).toHaveLength(1)
+    expect(data.nodes.find((n) => n.title === 'LoRA')?.kind).toBe('note')
+  })
+
+  it('mantiene la nota aprobada mientras la bóveda aún no se ha recargado', () => {
+    const data = buildGraphData(vault, [proposal({ status: 'approved' })])
+
+    expect(data.nodes.some((n) => n.id === 'p-001')).toBe(true)
+  })
+})

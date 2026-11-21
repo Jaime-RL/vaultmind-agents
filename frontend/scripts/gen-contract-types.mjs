@@ -34,9 +34,19 @@ const seen = new Set()
 const chunks = []
 for (const file of files) {
   const schema = JSON.parse(await readFile(join(contractsDir, file), 'utf8'))
-  const ts = await compile(schema, schema.title ?? file, { ...options, cwd: contractsDir })
+
+  // Algunos esquemas (proposal, research) solo agrupan definiciones en $defs y su
+  // raíz se llama igual que una de ellas («Proposal»). Si se compilan tal cual, el
+  // generador renombra la definición real a «Proposal1». Para evitarlo, la raíz de
+  // esos esquemas recibe un nombre interno (…Root) y se descarta del resultado.
+  const isDefsContainer = !schema.type && !schema.oneOf && !schema.properties
+  const rootName = isDefsContainer ? `${schema.title}Root` : schema.title
+  const input = isDefsContainer ? { ...schema, title: rootName, description: undefined } : schema
+
+  const ts = await compile(input, rootName ?? file, { ...options, cwd: contractsDir })
   for (const block of ts.split(/\n(?=export )/)) {
     const name = block.match(/^export (?:type|interface) (\w+)/)?.[1]
+    if (isDefsContainer && name === rootName) continue
     if (name && seen.has(name)) continue
     if (name) seen.add(name)
     chunks.push(block.trim())

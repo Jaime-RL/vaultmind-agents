@@ -147,34 +147,22 @@ export interface Metrics {
 }
 
 /**
- * This interface was referenced by `Proposal`'s JSON-Schema
+ * This interface was referenced by `ProposalRoot`'s JSON-Schema
  * via the `definition` "ProposalList".
  */
 
-export type ProposalList = Proposal1[]
-
-/**
- * GET /api/proposals devuelve una lista de Proposal. POST /api/proposals/{id} recibe ProposalAction y devuelve la Proposal actualizada.
- */
-
-export interface Proposal {
-  [k: string]: unknown | undefined
-}
-/**
- * This interface was referenced by `Proposal`'s JSON-Schema
- * via the `definition` "Source".
- */
+export type ProposalList = Proposal[]
 
 export interface Source {
   title: string
   url: string
 }
 /**
- * This interface was referenced by `Proposal`'s JSON-Schema
+ * This interface was referenced by `ProposalRoot`'s JSON-Schema
  * via the `definition` "Proposal".
  */
 
-export interface Proposal1 {
+export interface Proposal {
   id: string
   run_id: string
   title: string
@@ -193,7 +181,7 @@ export interface Proposal1 {
   created_at: string
 }
 /**
- * This interface was referenced by `Proposal`'s JSON-Schema
+ * This interface was referenced by `ProposalRoot`'s JSON-Schema
  * via the `definition` "ProposalAction".
  */
 
@@ -201,23 +189,11 @@ export interface ProposalAction {
   action: 'approve' | 'reject'
 }
 
-/**
- * POST /api/research — lanza una investigación.
- */
-
-export interface Research {
-  [k: string]: unknown | undefined
-}
-/**
- * This interface was referenced by `Research`'s JSON-Schema
- * via the `definition` "ResearchRequest".
- */
-
 export interface ResearchRequest {
   topic: string
 }
 /**
- * This interface was referenced by `Research`'s JSON-Schema
+ * This interface was referenced by `ResearchRoot`'s JSON-Schema
  * via the `definition` "ResearchResponse".
  */
 

@@ -75,6 +75,8 @@ RUN useradd --create-home --uid 1000 app
 
 COPY backend/ /app/backend/
 COPY demo-vault/ /app/demo-vault/
+# La grabación que reproduce el modo demo (fixtures/demo_run.json).
+COPY fixtures/ /app/fixtures/
 COPY --from=frontend-build /app/frontend/dist /app/frontend/dist
 
 # La base de datos SQLite y las notas aprobadas (_copilot/) se escriben en tiempo
@@ -82,7 +84,10 @@ COPY --from=frontend-build /app/frontend/dist /app/frontend/dist
 RUN mkdir -p /app/data && chown -R app:app /app/data /app/demo-vault
 USER app
 
+# La imagen pública arranca en modo demo: sin clave de API y sin gasto. Para usarla
+# con modelos reales: DEMO_MODE=false y LLM_API_KEY en el entorno del contenedor.
 ENV FRONTEND_DIST=/app/frontend/dist \
+    DEMO_MODE=true \
     PORT=8000
 EXPOSE 8000
 

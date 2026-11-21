@@ -732,3 +732,12 @@ code {
 .metrics-table .escalated {
   display: block;
 }
+
+.tier-dot {
+  display: inline-block;
+  width: 0.6rem;
+  height: 0.6rem;
+  margin-right: 0.2rem;
+  border-radius: 50%;
+  vertical-align: baseline;
+}

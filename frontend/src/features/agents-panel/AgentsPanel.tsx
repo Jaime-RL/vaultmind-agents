@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { AgentEvent } from '../../api/contract.gen'
+import { TierDot } from '../../components/TierDot'
 import { AGENT_LABELS, TIER_LABELS } from '../graph/colors'
 import { describeToolCall, eventKey, formatUsd, plural, shortModel } from './describeEvent'
 import type { RunState } from './runReducer'
@@ -106,7 +107,7 @@ function EventLine({ event }: { event: AgentEvent }) {
       return (
         <li className="event event--route">
           <span className={`tier-badge tier-badge--${event.tier}`}>
-            {event.tier === 'slm' ? '🟢' : '🔵'} {TIER_LABELS[event.tier]}
+            <TierDot tier={event.tier} /> {TIER_LABELS[event.tier]}
           </span>
           <span>
             <code>{event.task}</code> con {shortModel(event.model)}

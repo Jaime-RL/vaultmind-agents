@@ -35,6 +35,10 @@ function proposedObject(node: GraphNode): THREE.Object3D {
   return group
 }
 
+// Encuadre: solo notas conectadas y propuestas. Una nota huérfana lejos del resto
+// haría que zoomToFit alejase tanto la cámara que el grafo quedaría diminuto.
+const worthFraming = (node: GraphNode) => node.kind === 'proposed' || node.val > 1
+
 export default function VaultGraph3D({ data, focusId, fitAll = false }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const graphRef = useRef<ForceGraphMethods<GraphNode, GraphLink> | undefined>(undefined)
@@ -74,7 +78,7 @@ export default function VaultGraph3D({ data, focusId, fitAll = false }: Props) {
 
   useEffect(() => {
     if (!fitAll) return
-    const timer = setTimeout(() => graphRef.current?.zoomToFit(1200, 60), 1500)
+    const timer = setTimeout(() => graphRef.current?.zoomToFit(1200, 40, worthFraming), 1500)
     return () => clearTimeout(timer)
   }, [fitAll])
 
@@ -125,7 +129,7 @@ export default function VaultGraph3D({ data, focusId, fitAll = false }: Props) {
           onEngineStop={() => {
             if (fitted.current) return
             fitted.current = true
-            graphRef.current?.zoomToFit(600, 40)
+            graphRef.current?.zoomToFit(600, 40, worthFraming)
           }}
         />
       )}

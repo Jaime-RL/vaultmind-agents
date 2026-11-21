@@ -1,6 +1,7 @@
 import { useId } from 'react'
 import type { Metrics } from '../../api/contract.gen'
 import { formatUsd, shortModel } from '../agents-panel/describeEvent'
+import { TierDot } from '../../components/TierDot'
 import { AGENT_LABELS, TIER_SHORT } from '../graph/colors'
 import type { MetricsState } from './useMetrics'
 
@@ -109,7 +110,7 @@ function MetricsView({ metrics }: { metrics: Metrics }) {
                   <code>{task.task}</code>
                 </td>
                 <td title={task.model}>
-                  {task.tier === 'slm' ? '🟢' : '🔵'} {TIER_SHORT[task.tier]}
+                  <TierDot tier={task.tier} /> {TIER_SHORT[task.tier]}
                   <span className="metrics-table__model">{shortModel(task.model)}</span>
                   {task.escalated && <span className="escalated"> · escalada</span>}
                 </td>

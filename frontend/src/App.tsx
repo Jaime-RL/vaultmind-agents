@@ -7,6 +7,8 @@ import { useResearchRun } from './features/agents-panel/useResearchRun'
 import { GraphView } from './features/graph/GraphView'
 import { useVaultGraph } from './features/graph/useVaultGraph'
 import { ReviewPanel } from './features/review/ReviewPanel'
+import { RouterPanel, type MetricsScope } from './features/router-panel/RouterPanel'
+import { useMetrics } from './features/router-panel/useMetrics'
 import { useProposals } from './features/review/useProposals'
 import './App.css'
 
@@ -58,6 +60,14 @@ export default function App() {
     onResolved,
   })
   const pendingCount = proposals.state.status === 'ready' ? proposals.state.proposals.length : 0
+
+  // Métricas del router: por defecto las de la investigación en curso, si la hay.
+  const [scope, setScope] = useState<MetricsScope>('run')
+  const metricsRunId = scope === 'run' ? run.state.runId : undefined
+  const metrics = useMetrics(
+    metricsRunId,
+    `${run.state.routeDecisions.length}:${run.state.status}`,
+  )
 
   // Notas de la bóveda (por id y por título) para marcar los [[enlaces]] que ya existen.
   const existingNotes = useMemo(
@@ -114,6 +124,18 @@ export default function App() {
                     existing={existingNotes}
                     onResolve={proposals.resolve}
                     onRetry={() => void proposals.reload()}
+                  />
+                ),
+              },
+              {
+                id: 'router',
+                label: 'Router',
+                content: (
+                  <RouterPanel
+                    state={metrics}
+                    scope={run.state.runId ? scope : 'all'}
+                    hasRun={Boolean(run.state.runId)}
+                    onScopeChange={setScope}
                   />
                 ),
               },

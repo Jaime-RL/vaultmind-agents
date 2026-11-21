@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { AgentEvent } from '../../api/contract.gen'
-import { AGENT_COLORS, AGENT_LABELS, TIER_LABELS } from '../graph/colors'
+import { AGENT_LABELS, TIER_LABELS } from '../graph/colors'
 import { describeToolCall, eventKey, formatUsd, plural, shortModel } from './describeEvent'
 import type { RunState } from './runReducer'
 
@@ -72,9 +72,8 @@ export function AgentsPanel({ state, onReconnect }: Props) {
 
 function AgentChip({ event }: { event: AgentEvent }) {
   return (
-    <span className="agent-chip" style={{ color: AGENT_COLORS[event.agent] }}>
-      {AGENT_LABELS[event.agent]}
-    </span>
+    // El agente se identifica por su nombre, no por un color (ver colors.ts).
+    <span className="agent-chip">{AGENT_LABELS[event.agent]}</span>
   )
 }
 

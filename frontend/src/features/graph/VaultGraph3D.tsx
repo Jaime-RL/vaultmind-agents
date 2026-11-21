@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import ForceGraph3D, { type ForceGraphMethods } from 'react-force-graph-3d'
 import * as THREE from 'three'
-import { TIER_COLORS } from './colors'
+import { PROPOSED_COLOR, TIER_COLORS } from './colors'
 import type { GraphData, GraphLink, GraphNode } from './graphData'
 
 interface Props {
@@ -15,8 +15,8 @@ interface Props {
   fitAll?: boolean
 }
 
-// Objeto 3D de una nota propuesta: esfera del color del agente y un anillo del
-// color del modelo (verde SLM, azul grande). Las notas normales usan la esfera por
+// Objeto 3D de una nota propuesta: esfera de color de acento y un anillo del color
+// del modelo (verde SLM, azul grande), separado de la esfera para que se distingan. Las notas normales usan la esfera por
 // defecto de la librería, más barata de dibujar.
 function proposedObject(node: GraphNode): THREE.Object3D {
   const group = new THREE.Group()
@@ -114,7 +114,7 @@ export default function VaultGraph3D({ data, focusId, fitAll = false }: Props) {
           nodeThreeObject={(node) =>
             node.kind === 'proposed' ? proposedObject(node) : (null as unknown as THREE.Object3D)
           }
-          linkColor={(link) => (link.proposed ? '#f2cc60' : '#3a4152')}
+          linkColor={(link) => (link.proposed ? PROPOSED_COLOR : '#3a4152')}
           linkWidth={(link) => (link.proposed ? 1.2 : 0.4)}
           linkOpacity={0.6}
           // Partículas que viajan por los enlaces nuevos: se ve qué conecta la nota propuesta.

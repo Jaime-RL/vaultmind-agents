@@ -21,9 +21,9 @@ export function describeToolCall(tool: string, args: Record<string, unknown>): s
   }
 }
 
-/** Nombre corto del modelo: «qwen/qwen-2.5-7b-instruct» → «qwen-2.5-7b-instruct». */
+/** Nombre corto del modelo: «qwen/qwen-2.5-7b-instruct» → «qwen-2.5-7b» (el completo va en el title). */
 export function shortModel(model: string): string {
-  return model.split('/').at(-1) ?? model
+  return (model.split('/').at(-1) ?? model).replace(/-instruct$/, '')
 }
 
 export function formatUsd(value: number): string {

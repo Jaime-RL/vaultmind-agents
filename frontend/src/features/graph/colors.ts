@@ -1,14 +1,16 @@
 import type { Agent, Tier } from '../../api/contract.gen'
 
-// Un color por agente para los nodos que proponen (y para sus líneas en el panel).
-// Elegidos para distinguirse entre sí y leerse bien sobre fondo oscuro.
-export const AGENT_COLORS: Record<Agent, string> = {
-  explorer: '#f2cc60', // amarillo
-  researcher: '#a371f7', // violeta
-  writer: '#ff7b72', // coral
-  reviewer: '#39c5cf', // turquesa
-  system: '#8b949e', // gris
-}
+// Colores validados con el validador de la guía de visualización (scripts/validate_palette.js,
+// modo oscuro, todos los pares) para que se distingan también con daltonismo:
+//
+// - Nota propuesta: UN solo acento (magenta). Se descartó «un color por agente»:
+//   ninguna combinación de 4 tonos supera la separación para daltonismo junto al
+//   verde y el azul del modelo, y en la práctica todas las notas las propone el
+//   Redactor, así que el color por agente no aportaba información.
+// - Modelo: verde (SLM) y azul (grande), en el anillo que rodea a la nota.
+//   Magenta frente a verde queda en la banda de aviso para deuteranopía: por eso
+//   el anillo va separado de la esfera y la leyenda (y el panel) lo nombran.
+export const PROPOSED_COLOR = '#d55181'
 
 export const AGENT_LABELS: Record<Agent, string> = {
   explorer: 'Explorador',
@@ -20,13 +22,19 @@ export const AGENT_LABELS: Record<Agent, string> = {
 
 // El modelo que hizo la tarea: verde = SLM (barato), azul = modelo grande.
 export const TIER_COLORS: Record<Tier, string> = {
-  slm: '#3fb950',
-  large: '#58a6ff',
+  slm: '#2ea043',
+  large: '#388bfd',
 }
 
 export const TIER_LABELS: Record<Tier, string> = {
   slm: 'SLM',
   large: 'Modelo grande',
+}
+
+/** Versión corta para tablas estrechas. */
+export const TIER_SHORT: Record<Tier, string> = {
+  slm: 'SLM',
+  large: 'Grande',
 }
 
 // Notas existentes: tonos neutros (gris azulado) que varían solo en luminosidad por

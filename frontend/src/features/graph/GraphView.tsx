@@ -1,6 +1,6 @@
 import { Component, lazy, Suspense, useMemo, type ReactNode } from 'react'
 import type { VaultGraph } from '../../api/contract.gen'
-import { AGENT_COLORS, AGENT_LABELS, TIER_COLORS, TIER_LABELS } from './colors'
+import { PROPOSED_COLOR, TIER_COLORS, TIER_LABELS } from './colors'
 import { buildGraphData, type ProposedNode } from './graphData'
 import type { VaultState } from './useVaultGraph'
 
@@ -97,17 +97,17 @@ function ReadyGraph({
 }
 
 function Legend() {
-  const agents = ['explorer', 'researcher', 'writer', 'reviewer'] as const
   return (
     <aside className="legend" aria-label="Leyenda del grafo">
-      <span className="legend__title">Notas nuevas</span>
-      {agents.map((agent) => (
-        <span key={agent} className="legend__item">
-          <span className="legend__dot" style={{ background: AGENT_COLORS[agent] }} />
-          {AGENT_LABELS[agent]}
-        </span>
-      ))}
-      <span className="legend__title">Anillo = modelo</span>
+      <span className="legend__item">
+        <span className="legend__dot legend__dot--note" />
+        Nota de tu bóveda
+      </span>
+      <span className="legend__item">
+        <span className="legend__dot" style={{ background: PROPOSED_COLOR }} />
+        Nota propuesta
+      </span>
+      <span className="legend__title">Anillo = modelo que la escribió</span>
       {(['slm', 'large'] as const).map((tier) => (
         <span key={tier} className="legend__item">
           <span className="legend__ring" style={{ borderColor: TIER_COLORS[tier] }} />

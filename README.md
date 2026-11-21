@@ -43,7 +43,14 @@ Cómo trabajan los agentes en cada investigación:
 
 ## 3. Cómo ejecutarlo
 
-**URL pública:** *[pendiente de desplegar]*. En el plan gratuito de Render se duerme tras 15 minutos sin visitas: la primera carga puede tardar alrededor de un minuto. Funciona en **modo demo** (`DEMO_MODE=true`): reproduce una investigación grabada, así no necesita clave de API y ningún visitante puede gastar saldo. Para investigaciones reales, ejecútalo en local con tu clave.
+**URL pública:** <https://vaultmind-xymm.onrender.com>. En el plan gratuito de Render se duerme tras 15 minutos sin visitas: la primera carga puede tardar alrededor de un minuto.
+
+La URL pública hace **investigaciones reales, gratis y sin riesgo de gasto**:
+
+- Usa los modelos `gpt-oss-20b` (SLM) y `gpt-oss-120b` (grande) en el **plan gratuito de Groq, sin tarjeta**: nunca hay cobro; como mucho se agota el cupo del día.
+- **Cupo diario:** 10 investigaciones reales al día en total y 3 por IP (`MAX_RUNS_PER_DAY`, `MAX_RUNS_PER_IP_PER_DAY`), además de 3 simultáneas como máximo.
+- Si se agota el cupo (o falta la clave), la web **no falla**: reproduce una investigación grabada y lo avisa en el primer mensaje.
+- La clave solo vive en las variables de entorno de Render, nunca en el repositorio.
 
 **Requisitos:** Docker, o bien Python ≥ 3.12 con [uv](https://docs.astral.sh/uv/) y Node ≥ 22. También hay un DevContainer (Python 3.12, Node 24 y uv) para abrir el proyecto listo en VS Code.
 
@@ -120,11 +127,10 @@ El registro completo está en [`docs/ai-log.md`](docs/ai-log.md).
 
 **Estado:** las cuatro historias del MVP están implementadas en backend y frontend, con más de 260 tests (más de 200 en el backend y 58 en el frontend, incluida una prueba de punta a punta con la red simulada) y la app completa verificada en un navegador real en modo demo.
 
-**Modelos:** Qwen2.5 7B Instruct como SLM y Qwen2.5 72B Instruct como modelo grande (misma familia, para que la comparación mida el efecto del tamaño), con sus precios de OpenRouter.
+**Modelos:** en la URL pública, `gpt-oss-20b` y `gpt-oss-120b` en el plan gratuito de Groq; en local, por defecto, Qwen2.5 7B y 72B Instruct en OpenRouter. En ambos casos un modelo pequeño y uno grande de la misma familia, para que la comparación mida el efecto del tamaño.
 
 **Pendiente:**
 
-- Ejecutar las evals (`backend/evals`) con una clave para obtener la tasa de acierto y el ahorro reales. El 31 % de ahorro de la demo usa precios reales pero tokens de ejemplo: es ilustrativo.
-- Publicar la URL pública (imagen de producción en modo demo).
+- Ejecutar las evals (`backend/evals`) con la clave gratuita de Groq para obtener la tasa de acierto y el ahorro reales. El 31 % de ahorro de la grabación usa tokens de ejemplo: es ilustrativo.
 
 **Próximos pasos:** ver el backlog de la sección 2.

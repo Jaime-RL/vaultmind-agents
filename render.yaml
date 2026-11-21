@@ -3,7 +3,12 @@
 #
 # Plan gratuito: se duerme tras 15 min sin tráfico (despierta en ~1 min con la
 # siguiente visita) y el disco es efímero: SQLite y las notas aprobadas en
-# _copilot/ se pierden al reiniciar. Para la URL pública, con el modo demo, basta.
+# _copilot/ se pierden al reiniciar.
+#
+# Investigaciones REALES gratis y seguras: modelos gpt-oss en el plan gratuito de Groq
+# (sin tarjeta, así que nunca hay cobro: como mucho se agota el cupo del día). La clave
+# LLM_API_KEY se define en el panel de Render (Environment), NUNCA en este fichero.
+# Sin clave, o con el cupo diario agotado, la web reproduce la investigación grabada.
 services:
   - type: web
     name: vaultmind
@@ -17,11 +22,36 @@ services:
     dockerContext: .
     healthCheckPath: /api/health
     envVars:
-      # Investigación grabada: sin clave de API y sin gasto. Para investigar de verdad,
-      # pon DEMO_MODE=false y define LLM_API_KEY en el panel de Render (nunca aquí).
+      # Secreto: Render pide su valor en el panel; no se guarda en el repositorio.
+      - key: LLM_API_KEY
+        sync: false
       - key: DEMO_MODE
-        value: "true"
-      - key: DEMO_SPEED
-        value: "1.5"
+        value: "false"
+      - key: LLM_BASE_URL
+        value: https://api.groq.com/openai/v1
+      - key: SLM_MODEL
+        value: openai/gpt-oss-20b
+      - key: LARGE_MODEL
+        value: openai/gpt-oss-120b
+      # Razonamiento corto: gasta menos tokens del cupo gratuito diario de Groq.
+      - key: LLM_REASONING_EFFORT
+        value: low
+      # Precios publicados por Groq (USD por millón de tokens). Con el plan gratuito no se
+      # paga nada; sirven para que el panel del router muestre el ahorro equivalente.
+      - key: SLM_PRICE_INPUT
+        value: "0.075"
+      - key: SLM_PRICE_OUTPUT
+        value: "0.30"
+      - key: LARGE_PRICE_INPUT
+        value: "0.15"
+      - key: LARGE_PRICE_OUTPUT
+        value: "0.60"
+      # Protección de la URL pública.
       - key: MAX_CONCURRENT_RUNS
         value: "3"
+      - key: MAX_RUNS_PER_DAY
+        value: "10"
+      - key: MAX_RUNS_PER_IP_PER_DAY
+        value: "3"
+      - key: DEMO_SPEED
+        value: "1.5"

@@ -25,7 +25,7 @@ NOTE = "# LoRA\n\n" + "LoRA ajusta modelos con matrices de bajo rango. " * 5 + "
 def happy_script():
     """Guion de una investigación completa con una laguna."""
     return [
-        final({"selected": ["LoRA"]}),
+        final({"topic_note": "LoRA", "selected": ["LoRA"]}),
         calls_tool("search_arxiv", query="LoRA"),
         final({"summary": "Resumen", "sources": [{"title": "P", "url": PAPER_URL}]}),
         LLMResponse(content=NOTE, prompt_tokens=900, completion_tokens=300),
@@ -121,10 +121,14 @@ async def test_finished_run_is_replayed_from_the_database(vault_dir):
 
 async def test_failed_run_ends_with_error_status(vault_dir):
     store = Store()
-    manager = make_manager(store, vault_dir, script=[final({"selected": ["LoRA"]})])
+    manager = make_manager(
+        store, vault_dir, script=[final({"topic_note": "LoRA", "selected": ["LoRA"]})]
+    )
     manager.search_tool = fake_search_tool(error=RuntimeError("bug"))
     manager.router_factory = lambda: SmartRoute(
-        client=FakeLLMClient([final({"selected": ["LoRA"]}), calls_tool("search_arxiv", q="x")]),
+        client=FakeLLMClient(
+            [final({"topic_note": "LoRA", "selected": ["LoRA"]}), calls_tool("search_arxiv", q="x")]
+        ),
         slm_model="small",
         large_model="large",
         slm_price=ModelPrice(0.1, 0.1),

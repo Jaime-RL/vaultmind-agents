@@ -34,7 +34,6 @@ Cómo trabajan los agentes en cada investigación:
 - Router aprendido a partir de las trazas y de las evals, en lugar de reglas fijas.
 - Más fuentes de papers (Semantic Scholar) y evals de calidad automáticas en cada cambio de prompt.
 - Sincronización directa con la bóveda real (plugin de Obsidian o Google Drive).
-- Liberar de memoria las investigaciones terminadas (hoy se guardan hasta reiniciar).
 
 ## 3. Cómo ejecutarlo
 
@@ -89,7 +88,7 @@ El registro completo está en [`docs/ai-log.md`](docs/ai-log.md).
 
 **Pendiente antes de la entrega:**
 
-- SLM elegido: Qwen2.5 7B Instruct (`qwen/qwen-2.5-7b-instruct`). Falta elegir el modelo grande, fijar su precio real y ejecutar las evals (`backend/evals`). Sus resultados decidirán qué tareas puede hacer el SLM y darán la cifra de ahorro real; hasta entonces el ahorro del fixture (40 %) es solo ilustrativo.
+- Modelos: Qwen2.5 7B Instruct como SLM y Qwen2.5 72B Instruct como modelo grande (misma familia, para que la comparación mida el efecto del tamaño), con sus precios de OpenRouter. Falta ejecutar las evals (`backend/evals`) con una clave para obtener la tasa de acierto y el ahorro reales. Sus resultados decidirán qué tareas puede hacer el SLM y darán la cifra de ahorro real; hasta entonces el ahorro del fixture (40 %) es solo ilustrativo.
 - *[Persona B: estado del frontend y del despliegue.]*
 
 **Próximos pasos:** ver el backlog de la sección 2.

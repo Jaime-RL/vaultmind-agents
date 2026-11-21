@@ -59,3 +59,9 @@ Materia prima para la sección «Cómo se construyó con IA» del README. Apunta
 - **Qué funcionó:** elegir el modelo grande de la misma familia que el SLM (Qwen2.5 72B frente a 7B) y comprobar en OpenRouter su precio y que admite tool calling, imprescindible porque el Investigador puede escalar a él en mitad del bucle de herramientas.
 - **Qué costó o falló:** con precios reales el ahorro de la demo bajó del 40 % al 31 %: el 72B es barato. Es la cifra honesta; el ahorro real lo dirán las evals.
 - **Qué cambiaría:** el límite de investigaciones simultáneas es global; con usuarios reales convendría un límite por IP.
+
+### 2026-11-21 · Persona B · Esqueleto del frontend e infraestructura
+- **Prompt:** prompt de arranque de la Persona B con la tarea del sábado (esqueleto React + Vite, DevContainer, Dockerfile y docker-compose), pidiendo revisar `CLAUDE.md` y `contracts/` antes de proponer nada.
+- **Qué funcionó:** pedir al agente que comprobara las dependencias entre paquetes antes de instalar: detectó que TypeScript 7 (la última) no es compatible con `typescript-eslint`, y se fijó `~6.0.3`. Generar los tipos TypeScript desde los esquemas JSON (`npm run gen:types`) en lugar de escribirlos a mano.
+- **Qué costó o falló:** el entorno del agente no podía descargar imágenes de Docker, así que el Dockerfile se valida en la CI (build + arranque de la imagen + `/api/health`) y no en local.
+- **Qué cambiaría:** decidir desde el día 1 que producción es un solo servicio (FastAPI sirve el frontend compilado): evita CORS y una URL distinta por entorno.

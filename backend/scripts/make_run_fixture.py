@@ -35,7 +35,7 @@ from vault.parser import LinkResolver
 
 RUN_ID = "run-demo-001"
 START = datetime(2026, 11, 23, 10, 0, 0, tzinfo=UTC)
-SLM, LARGE = "qwen/qwen-2.5-7b-instruct", "demo/large"
+SLM, LARGE = "qwen/qwen-2.5-7b-instruct", "qwen/qwen-2.5-72b-instruct"
 
 settings = Settings(_env_file=None)
 PRICES = {

@@ -102,7 +102,7 @@
       "agent": "researcher",
       "type": "route_decision",
       "task": "summarize_paper",
-      "model": "demo/large",
+      "model": "qwen/qwen-2.5-72b-instruct",
       "tier": "large",
       "reason": "el modelo pequeño falló (La respuesta no es JSON válido); se escala al modelo grande",
       "escalated": true
@@ -156,7 +156,7 @@
       "agent": "writer",
       "type": "route_decision",
       "task": "write_note",
-      "model": "demo/large",
+      "model": "qwen/qwen-2.5-72b-instruct",
       "tier": "large",
       "reason": "tarea compleja: se asigna directamente al modelo grande",
       "escalated": false
@@ -187,7 +187,7 @@
       "agent": "writer",
       "type": "route_decision",
       "task": "write_note",
-      "model": "demo/large",
+      "model": "qwen/qwen-2.5-72b-instruct",
       "tier": "large",
       "reason": "tarea compleja: se asigna directamente al modelo grande",
       "escalated": false
@@ -218,7 +218,7 @@
       "agent": "writer",
       "type": "route_decision",
       "task": "write_note",
-      "model": "demo/large",
+      "model": "qwen/qwen-2.5-72b-instruct",
       "tier": "large",
       "reason": "tarea compleja: se asigna directamente al modelo grande",
       "escalated": false
@@ -336,9 +336,9 @@
       "type": "run_finished",
       "stats": {
         "notes_proposed": 3,
-        "cost_usd": 0.079312,
-        "baseline_cost_usd": 0.132,
-        "savings_usd": 0.052688,
+        "cost_usd": 0.007078,
+        "baseline_cost_usd": 0.01024,
+        "savings_usd": 0.003162,
         "escalations": 1,
         "duration_s": 60.5
       }
@@ -362,7 +362,7 @@
         "proyecto/Diario de trabajo"
       ],
       "agent": "writer",
-      "model": "demo/large",
+      "model": "qwen/qwen-2.5-72b-instruct",
       "status": "pending",
       "created_at": "2026-11-23T10:00:00Z"
     },
@@ -383,7 +383,7 @@
         "proyecto/Objetivos del TFG"
       ],
       "agent": "writer",
-      "model": "demo/large",
+      "model": "qwen/qwen-2.5-72b-instruct",
       "status": "pending",
       "created_at": "2026-11-23T10:00:00Z"
     },
@@ -403,7 +403,7 @@
         "modelos/SLM"
       ],
       "agent": "writer",
-      "model": "demo/large",
+      "model": "qwen/qwen-2.5-72b-instruct",
       "status": "pending",
       "created_at": "2026-11-23T10:00:00Z"
     }
@@ -422,7 +422,7 @@
         "latency_ms": 1500.0,
         "escalated": false
       },
-      "baseline_cost_usd": 0.0072
+      "baseline_cost_usd": 0.000696
     },
     {
       "metric": {
@@ -437,22 +437,22 @@
         "latency_ms": 1500.0,
         "escalated": false
       },
-      "baseline_cost_usd": 0.0117
+      "baseline_cost_usd": 0.000984
     },
     {
       "metric": {
         "run_id": "run-demo-001",
         "agent": "researcher",
         "task": "summarize_paper",
-        "model": "demo/large",
+        "model": "qwen/qwen-2.5-72b-instruct",
         "tier": "large",
         "prompt_tokens": 2600,
         "completion_tokens": 320,
-        "cost_usd": 0.012892,
+        "cost_usd": 0.001356,
         "latency_ms": 4000.0,
         "escalated": true
       },
-      "baseline_cost_usd": 0.0126
+      "baseline_cost_usd": 0.001064
     },
     {
       "metric": {
@@ -467,52 +467,52 @@
         "latency_ms": 1500.0,
         "escalated": false
       },
-      "baseline_cost_usd": 0.0108
+      "baseline_cost_usd": 0.000904
     },
     {
       "metric": {
         "run_id": "run-demo-001",
         "agent": "writer",
         "task": "write_note",
-        "model": "demo/large",
+        "model": "qwen/qwen-2.5-72b-instruct",
         "tier": "large",
         "prompt_tokens": 3200,
         "completion_tokens": 900,
-        "cost_usd": 0.0231,
+        "cost_usd": 0.001512,
         "latency_ms": 6000.0,
         "escalated": false
       },
-      "baseline_cost_usd": 0.0231
+      "baseline_cost_usd": 0.001512
     },
     {
       "metric": {
         "run_id": "run-demo-001",
         "agent": "writer",
         "task": "write_note",
-        "model": "demo/large",
+        "model": "qwen/qwen-2.5-72b-instruct",
         "tier": "large",
         "prompt_tokens": 3000,
         "completion_tokens": 850,
-        "cost_usd": 0.02175,
+        "cost_usd": 0.00142,
         "latency_ms": 5500.0,
         "escalated": false
       },
-      "baseline_cost_usd": 0.02175
+      "baseline_cost_usd": 0.00142
     },
     {
       "metric": {
         "run_id": "run-demo-001",
         "agent": "writer",
         "task": "write_note",
-        "model": "demo/large",
+        "model": "qwen/qwen-2.5-72b-instruct",
         "tier": "large",
         "prompt_tokens": 2800,
         "completion_tokens": 780,
-        "cost_usd": 0.0201,
+        "cost_usd": 0.00132,
         "latency_ms": 5000.0,
         "escalated": false
       },
-      "baseline_cost_usd": 0.0201
+      "baseline_cost_usd": 0.00132
     },
     {
       "metric": {
@@ -527,7 +527,7 @@
         "latency_ms": 1500.0,
         "escalated": false
       },
-      "baseline_cost_usd": 0.00855
+      "baseline_cost_usd": 0.000816
     },
     {
       "metric": {
@@ -542,7 +542,7 @@
         "latency_ms": 1500.0,
         "escalated": false
       },
-      "baseline_cost_usd": 0.0084
+      "baseline_cost_usd": 0.000784
     },
     {
       "metric": {
@@ -557,7 +557,7 @@
         "latency_ms": 1500.0,
         "escalated": false
       },
-      "baseline_cost_usd": 0.0078
+      "baseline_cost_usd": 0.00074
     }
   ]
 }

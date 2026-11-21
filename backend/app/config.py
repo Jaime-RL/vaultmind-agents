@@ -22,17 +22,17 @@ class Settings(BaseSettings):
     llm_base_url: str = "https://openrouter.ai/api/v1"
     # SecretStr evita que la clave aparezca en logs o en repr(settings).
     llm_api_key: SecretStr = SecretStr("")
-    # SLM elegido: Qwen2.5 7B Instruct (admite tool calling y salida JSON en OpenRouter).
+    # Misma familia en los dos niveles (Qwen2.5 7B frente a 72B): la comparación mide el efecto
+    # del tamaño, no el de cambiar de modelo. Ambos admiten tool calling en OpenRouter.
     slm_model: str = "qwen/qwen-2.5-7b-instruct"
-    large_model: str = ""
+    large_model: str = "qwen/qwen-2.5-72b-instruct"
 
-    # Precios en USD por millón de tokens (entrada / salida) para calcular coste y ahorro.
-    # SLM: precio publicado en OpenRouter para Qwen2.5 7B Instruct (consultado el 21-11-2026).
-    # Modelo grande: valores ORIENTATIVOS hasta elegirlo; pon los publicados del que uses.
+    # Precios en USD por millón de tokens (entrada / salida), publicados en OpenRouter
+    # (consultados el 21-11-2026). Si cambian, actualízalos para que el ahorro sea real.
     slm_price_input: float = 0.10
     slm_price_output: float = 0.20
-    large_price_input: float = 3.00
-    large_price_output: float = 15.00
+    large_price_input: float = 0.36
+    large_price_output: float = 0.40
 
     vault_path: Path = REPO_ROOT / "demo-vault"
     database_path: Path = REPO_ROOT / "data" / "vaultmind.db"
@@ -42,6 +42,11 @@ class Settings(BaseSettings):
     # clave de API y nadie puede gastar saldo. demo_speed > 1 la reproduce más rápido.
     demo_mode: bool = False
     demo_speed: float = 1.0
+
+    # Protección de la API pública: investigaciones a la vez como máximo (las demás reciben 429)
+    # y segundos que una investigación terminada sigue en memoria (después se lee de SQLite).
+    max_concurrent_runs: int = 3
+    finished_run_retention_s: float = 300.0
 
     # Orígenes que pueden llamar a la API desde el navegador (el dev server de Vite por defecto).
     cors_origins: list[str] = ["http://localhost:5173"]

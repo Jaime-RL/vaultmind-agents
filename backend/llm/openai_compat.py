@@ -16,8 +16,10 @@ class OpenAICompatClient:
         api_key: str,
         timeout: float = 60.0,
         http_client: httpx.AsyncClient | None = None,
+        reasoning_effort: str | None = None,
     ):
         # http_client permite inyectar un transporte simulado en los tests de punta a punta.
+        self._reasoning_effort = reasoning_effort
         self._client = AsyncOpenAI(
             base_url=base_url, api_key=api_key, timeout=timeout, http_client=http_client
         )
@@ -31,6 +33,10 @@ class OpenAICompatClient:
         kwargs: dict[str, Any] = {"model": model, "messages": messages}
         if tools:  # algunos proveedores rechazan tools=[]: solo se envía si hay herramientas
             kwargs["tools"] = tools
+        if self._reasoning_effort:
+            # Parámetro de los modelos de razonamiento; va en extra_body para que el SDK
+            # no lo valide contra su lista de parámetros conocidos.
+            kwargs["extra_body"] = {"reasoning_effort": self._reasoning_effort}
         try:
             completion = await self._client.chat.completions.create(**kwargs)
         except APIError as exc:

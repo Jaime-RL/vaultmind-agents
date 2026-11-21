@@ -6,6 +6,7 @@ en una no tira la investigación entera.
 """
 
 import json
+import re
 from dataclasses import dataclass, field
 
 from agents.events import Emitter
@@ -46,13 +47,26 @@ async def research(
 async def research_gap(
     topic: str, gap: Gap, router: SmartRoute, emitter: Emitter, search_tool: Tool
 ) -> Finding:
-    # Envolvemos la herramienta para anotar qué URLs devolvió de verdad arXiv:
+    # Envolvemos la herramienta para anotar qué papers devolvió de verdad arXiv:
     # así descartamos fuentes que el modelo se haya inventado.
-    seen_urls: set[str] = set()
+    seen: dict[str, Source] = {}  # clave normalizada → fuente tal como la devolvió arXiv
+    queries: set[str] = set()
 
     async def tracked(args: dict) -> ToolOutput:
+        query = " ".join(str(args.get("query", "")).lower().split())
+        if query and query in queries:
+            # El modelo repite una búsqueda: se lo decimos en lugar de gastar otra petición.
+            return ToolOutput(
+                summary="búsqueda repetida",
+                data={
+                    "note": "Ya hiciste esta búsqueda: usa esos resultados o cambia los términos."
+                },
+            )
+        queries.add(query)
         output = await search_tool.handler(args)
-        seen_urls.update(item["url"] for item in output.data if "url" in item)
+        for item in output.data:
+            if isinstance(item, dict) and item.get("url"):
+                seen[source_key(item["url"])] = Source(str(item.get("title", "")), item["url"])
         return output
 
     tool = Tool(search_tool.name, search_tool.description, search_tool.parameters, tracked)
@@ -75,13 +89,40 @@ async def research_gap(
     )
 
     answer = json.loads(strip_code_fence(response.content or "{}"))
-    sources = [
-        Source(title=str(s.get("title", "")).strip(), url=s["url"])
-        for s in answer.get("sources", [])
-        if isinstance(s, dict) and s.get("url") in seen_urls
-    ]
+    sources = verified_sources(answer.get("sources", []), seen)
     summary = str(answer.get("summary", "")).strip()
     await emitter.thought(
         "researcher", f"«{gap.name}»: resumen listo con {len(sources)} fuentes verificadas."
     )
     return Finding(gap=gap, summary=summary, sources=sources)
+
+
+ARXIV_ID = re.compile(r"arxiv\.org/(?:abs|pdf)/([^\s?#]+?)(?:v\d+)?(?:\.pdf)?/?$", re.IGNORECASE)
+
+
+def source_key(url: str) -> str:
+    """Clave para comparar fuentes aunque el modelo escriba la URL de otra forma.
+
+    En arXiv, http/https, abs/pdf y la versión (v1, v2…) apuntan al mismo paper:
+    «https://arxiv.org/abs/2401.00001» y «http://arxiv.org/abs/2401.00001v1» son iguales.
+    """
+    url = url.strip()
+    match = ARXIV_ID.search(url)
+    if match:
+        return f"arxiv:{match.group(1).lower()}"
+    return re.sub(r"^https?://(www\.)?", "", url.lower()).rstrip("/")
+
+
+def verified_sources(cited: list, seen: dict[str, Source]) -> list[Source]:
+    """Fuentes citadas que arXiv devolvió de verdad, con la URL y el título de arXiv."""
+    result: list[Source] = []
+    if not isinstance(cited, list):
+        return result
+    for item in cited:
+        if not isinstance(item, dict) or not item.get("url"):
+            continue
+        source = seen.get(source_key(str(item["url"])))
+        if source is not None and source not in result:
+            title = source.title or str(item.get("title", "")).strip()
+            result.append(Source(title=title, url=source.url))
+    return result

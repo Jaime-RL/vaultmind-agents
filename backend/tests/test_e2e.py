@@ -52,7 +52,9 @@ class FakeOpenAI:
 
         message: dict = {"role": "assistant", "content": None}
         if agent == "Explorador":
-            message["content"] = json.dumps({"selected": ["LoRA"], "reasoning": "clave"})
+            message["content"] = json.dumps(
+                {"topic_note": "LoRA", "selected": ["LoRA"], "reasoning": "clave"}
+            )
         elif agent == "Investigador":
             if body["messages"][-1]["role"] == "tool":
                 answer = {"summary": "LoRA entrena matrices de bajo rango.",

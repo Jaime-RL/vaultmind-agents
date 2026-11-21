@@ -33,20 +33,32 @@ def test_there_are_enough_cases_for_every_task():
     assert len({c.id for c in CASES}) == len(CASES)
 
 
+T = "Function calling en modelos pequeños"
+
+
 @pytest.mark.parametrize(
     ("response", "passed"),
     [
-        (as_json({"selected": ["Function calling en SLMs"]}), True),
-        (text('```json\n{"selected": ["Evaluación de agentes", "LoRA"]}\n```'), True),
-        (as_json({"selected": ["function calling en slms"]}), False),  # reescrita
-        (as_json({"selected": ["Algo inventado"]}), False),
-        (as_json({"selected": ["Reanálisis"]}), False),  # existe pero no es relevante
-        (as_json({"selected": ["LoRA", "Llama", "Reanálisis", "Evaluación de agentes"]}), False),
+        (as_json({"topic_note": T, "selected": ["Function calling en SLMs"]}), True),
+        (text('```json\n{"topic_note": "FC", "selected": ["Evaluación de agentes"]}\n```'), True),
+        (as_json({"topic_note": T, "selected": []}), False),  # había lagunas relacionadas
+        (as_json({"topic_note": T, "selected": ["function calling en slms"]}), False),  # reescrita
+        (as_json({"topic_note": T, "selected": ["Algo inventado"]}), False),
+        (as_json({"topic_note": T, "selected": ["Function calling en SLMs", "LoRA"]}), False),
+        (as_json({"selected": ["Function calling en SLMs"]}), False),  # sin título del tema
         (text("Elijo LoRA"), False),
     ],
 )
 def test_explorer_check(response, passed):
     assert safe_check(case("explorer-tfg"), response)[0] is passed
+
+
+@pytest.mark.parametrize(
+    ("selected", "passed"), [([], True), (["LoRA"], False), (["Reanálisis", "Qwen"], False)]
+)
+def test_explorer_check_without_related_gaps(selected, passed):
+    response = as_json({"topic_note": "Predicción multitoken", "selected": selected})
+    assert safe_check(case("explorer-sin-relacion"), response)[0] is passed
 
 
 @pytest.mark.parametrize(
@@ -122,8 +134,8 @@ async def test_run_evals_with_fake_models():
     cases = [case("explorer-tfg"), case("reviewer-clean")]
     fake = FakeLLMClient(
         [
-            as_json({"selected": ["Function calling en SLMs"]}),  # explorer · slm ✓
-            as_json({"selected": ["Function calling en SLMs"]}),  # explorer · large ✓
+            as_json({"topic_note": T, "selected": ["Function calling en SLMs"]}),  # slm ✓
+            as_json({"topic_note": T, "selected": ["Function calling en SLMs"]}),  # large ✓
             text("no es JSON"),  # reviewer · slm ✗
             LLMError("timeout"),  # reviewer · large ✗ (error del proveedor)
         ]
@@ -149,7 +161,9 @@ def test_recommend_threshold():
 
 async def test_report_suggests_policy_changes():
     # El SLM falla siempre en find_gaps: el informe debe sugerir pasarla al grande.
-    fake = FakeLLMClient([text("mal"), as_json({"selected": ["LoRA"]})])
+    fake = FakeLLMClient(
+        [text("mal"), as_json({"topic_note": "Ajuste fino", "selected": ["LoRA"]})]
+    )
     results = await run_evals(fake, MODELS, PRICES, cases=[case("explorer-una")])
 
     markdown = report(results, MODELS)

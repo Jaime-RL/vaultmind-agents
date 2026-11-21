@@ -34,7 +34,15 @@ class DemoRun:
 
     @classmethod
     def load(cls, path: Path, speed: float = 1.0) -> "DemoRun":
-        data = json.loads(Path(path).read_text(encoding="utf-8"))
+        path = Path(path)
+        if not path.is_file():
+            # Fallo típico al desplegar: la imagen no incluye fixtures/. Mejor decirlo claro
+            # al arrancar que fallar en la primera investigación.
+            raise FileNotFoundError(
+                f"DEMO_MODE=true pero no existe {path}. "
+                "Incluye la carpeta fixtures/ en la imagen o desactiva el modo demo."
+            )
+        data = json.loads(path.read_text(encoding="utf-8"))
         return cls(
             topic=data["topic"],
             events=data["events"],

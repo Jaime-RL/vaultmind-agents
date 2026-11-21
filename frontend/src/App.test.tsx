@@ -1,8 +1,21 @@
-import { render, screen } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import App from './App'
+import type { GraphData } from './features/graph/graphData'
+import { FakeEventSource, installFakeEventSource } from './test/fakeEventSource'
+import { loadRunExample } from './test/fixtures'
 
-vi.mock('./features/graph/VaultGraph3D', () => ({ default: () => <div>grafo 3D</div> }))
+// El grafo 3D se sustituye por una lista con los nodos que recibiría (jsdom no tiene WebGL).
+vi.mock('./features/graph/VaultGraph3D', () => ({
+  default: ({ data }: { data: GraphData }) => (
+    <ul aria-label="grafo 3D">
+      {data.nodes.map((node) => (
+        <li key={node.id}>{node.title}</li>
+      ))}
+    </ul>
+  ),
+}))
 
 const VAULT = { nodes: [{ id: 'a', title: 'A', path: 'a.md', tags: [] }], links: [] }
 
@@ -27,7 +40,7 @@ describe('App', () => {
     render(<App />)
 
     expect(await screen.findByText('Backend conectado')).toBeInTheDocument()
-    expect(await screen.findByText('grafo 3D')).toBeInTheDocument()
+    expect(await screen.findByRole('list', { name: 'grafo 3D' })).toBeInTheDocument()
     expect(fetchMock).toHaveBeenCalledWith('/api/health', expect.anything())
     expect(fetchMock).toHaveBeenCalledWith('/api/vault', expect.anything())
   })
@@ -49,5 +62,58 @@ describe('App', () => {
     render(<App />)
 
     expect(await screen.findByText('Backend no disponible')).toBeInTheDocument()
+  })
+})
+
+describe('App: investigación en directo (HU2)', () => {
+  it('lanza la investigación, muestra a los agentes y añade las notas propuestas al grafo', async () => {
+    installFakeEventSource()
+    const events = loadRunExample()
+    const fetchMock = stubApi({
+      '/api/health': Response.json({ status: 'ok' }),
+      '/api/vault': Response.json(VAULT),
+      '/api/research': Response.json({ run_id: events[0]!.run_id }),
+    })
+    render(<App />)
+    await screen.findByRole('list', { name: 'grafo 3D' })
+
+    await userEvent.type(screen.getByLabelText('Tema a investigar'), 'SLMs con tool calling')
+    await userEvent.click(screen.getByRole('button', { name: 'Investigar' }))
+
+    // POST con el tema del formulario y suscripción al SSE de ese run_id.
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/research',
+      expect.objectContaining({ method: 'POST', body: JSON.stringify({ topic: 'SLMs con tool calling' }) }),
+    )
+    await vi.waitFor(() => expect(FakeEventSource.instances).toHaveLength(1))
+    expect(FakeEventSource.last().url).toBe(`/api/research/${events[0]!.run_id}/events`)
+    expect(screen.getByRole('button', { name: 'Investigando…' })).toBeDisabled()
+
+    act(() => {
+      for (const event of events) FakeEventSource.last().emit(event)
+    })
+
+    const graph = screen.getByRole('list', { name: 'grafo 3D' })
+    expect(within(graph).getByText('Function calling en SLMs')).toBeInTheDocument()
+    expect(within(graph).getByText('Routing de modelos')).toBeInTheDocument()
+    expect(within(graph).getByText('LoRA')).toBeInTheDocument()
+    expect(within(screen.getByRole('log')).getAllByRole('listitem')).toHaveLength(events.length)
+    expect(screen.getByRole('button', { name: 'Investigar' })).toBeEnabled()
+  })
+
+  it('explica el error si hay demasiadas investigaciones en marcha (429)', async () => {
+    installFakeEventSource()
+    stubApi({
+      '/api/health': Response.json({ status: 'ok' }),
+      '/api/vault': Response.json(VAULT),
+      '/api/research': Response.json({ detail: 'demasiadas' }, { status: 429 }),
+    })
+    render(<App />)
+
+    await userEvent.type(screen.getByLabelText('Tema a investigar'), 'Un tema')
+    await userEvent.click(screen.getByRole('button', { name: 'Investigar' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('demasiadas investigaciones en marcha')
+    expect(FakeEventSource.instances).toHaveLength(0)
   })
 })

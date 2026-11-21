@@ -11,6 +11,8 @@ interface Props {
   data: GraphData
   /** Nodo que se acaba de proponer: la cámara se acerca a él. */
   focusId?: string
+  /** true al terminar una investigación: la cámara vuelve a encuadrar todo el grafo. */
+  fitAll?: boolean
 }
 
 // Objeto 3D de una nota propuesta: esfera del color del agente y un anillo del
@@ -33,7 +35,7 @@ function proposedObject(node: GraphNode): THREE.Object3D {
   return group
 }
 
-export default function VaultGraph3D({ data, focusId }: Props) {
+export default function VaultGraph3D({ data, focusId, fitAll = false }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const graphRef = useRef<ForceGraphMethods<GraphNode, GraphLink> | undefined>(undefined)
   const [size, setSize] = useState({ width: 0, height: 0 })
@@ -71,7 +73,13 @@ export default function VaultGraph3D({ data, focusId }: Props) {
   }, [data, nodeCache])
 
   useEffect(() => {
-    if (!focusId) return
+    if (!fitAll) return
+    const timer = setTimeout(() => graphRef.current?.zoomToFit(1200, 60), 1500)
+    return () => clearTimeout(timer)
+  }, [fitAll])
+
+  useEffect(() => {
+    if (!focusId || fitAll) return
     // Damos tiempo al motor de fuerzas a colocar el nodo nuevo antes de mover la cámara.
     const timer = setTimeout(() => {
       const node = nodeCache.get(focusId) as
@@ -87,7 +95,7 @@ export default function VaultGraph3D({ data, focusId }: Props) {
       )
     }, 900)
     return () => clearTimeout(timer)
-  }, [focusId, nodeCache])
+  }, [focusId, fitAll, nodeCache])
 
   return (
     <div ref={containerRef} className="graph-canvas">

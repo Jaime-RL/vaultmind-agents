@@ -31,6 +31,10 @@ class RunNotFoundError(KeyError):
     pass
 
 
+class TooManyRunsError(RuntimeError):
+    """Se alcanzó el máximo de investigaciones simultáneas."""
+
+
 class LLMNotConfiguredError(RuntimeError):
     """No hay clave de API o modelos configurados: no se puede investigar."""
 
@@ -45,6 +49,8 @@ class RunManager:
         search_tool: Tool,
         max_gaps: int = 3,
         demo: DemoRun | None = None,
+        max_concurrent: int = 3,
+        retention_s: float = 300.0,
     ):
         # router_factory es None si falta configurar el LLM (sin clave o sin modelos).
         self.store = store
@@ -53,10 +59,19 @@ class RunManager:
         self.search_tool = search_tool
         self.max_gaps = max_gaps
         self.demo = demo  # si está definido, cada investigación reproduce la grabación
+        # En una URL pública, sin límite cualquiera podría lanzar cientos de investigaciones.
+        self.max_concurrent = max_concurrent
+        # Tras terminar, una investigación sigue en memoria un rato (para suscriptores que
+        # llegan justo al final) y luego se libera: después se reproduce desde SQLite.
+        self.retention_s = retention_s
         self._live: dict[str, LiveRun] = {}
         self._tasks: set[asyncio.Task] = set()
 
     async def start(self, topic: str) -> str:
+        if len(self._tasks) >= self.max_concurrent:
+            raise TooManyRunsError(
+                f"Ya hay {self.max_concurrent} investigaciones en curso; inténtalo en un momento"
+            )
         if self.demo is not None:
             return self._start_demo(topic)
         if self.router_factory is None:
@@ -107,6 +122,10 @@ class RunManager:
 
     def _on_done(self, task: asyncio.Task) -> None:
         self._tasks.discard(task)
+        # Libera la memoria más tarde; los suscriptores activos conservan su referencia.
+        asyncio.get_running_loop().call_later(
+            self.retention_s, self._live.pop, task.get_name(), None
+        )
         if not task.cancelled() and task.exception() is not None:
             logger.error("La investigación %s falló", task.get_name(), exc_info=task.exception())
 

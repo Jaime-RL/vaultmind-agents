@@ -43,7 +43,7 @@ Cómo trabajan los agentes en cada investigación:
 
 ## 3. Cómo ejecutarlo
 
-**URL pública:** *[pendiente de desplegar]*. En el plan gratuito de Render se duerme tras 15 minutos sin visitas: la primera carga puede tardar alrededor de un minuto. Funciona en **modo demo** (`DEMO_MODE=true`): reproduce una investigación grabada, así no necesita clave de API y ningún visitante puede gastar saldo. Para investigaciones reales, ejecútalo en local con tu clave.
+**URL pública:** <https://vaultmind-xymm.onrender.com>. En el plan gratuito de Render se duerme tras 15 minutos sin visitas: la primera carga puede tardar alrededor de un minuto. Funciona en **modo demo** (`DEMO_MODE=true`): reproduce una investigación grabada, así no necesita clave de API y ningún visitante puede gastar saldo. Para investigaciones reales, ejecútalo en local con tu clave.
 
 **Requisitos:** Docker, o bien Python ≥ 3.12 con [uv](https://docs.astral.sh/uv/) y Node ≥ 22. También hay un DevContainer (Python 3.12, Node 24 y uv) para abrir el proyecto listo en VS Code.
 
@@ -125,6 +125,5 @@ El registro completo está en [`docs/ai-log.md`](docs/ai-log.md).
 **Pendiente:**
 
 - Ejecutar las evals (`backend/evals`) con una clave para obtener la tasa de acierto y el ahorro reales. El 31 % de ahorro de la demo usa precios reales pero tokens de ejemplo: es ilustrativo.
-- Publicar la URL pública (imagen de producción en modo demo).
 
 **Próximos pasos:** ver el backlog de la sección 2.

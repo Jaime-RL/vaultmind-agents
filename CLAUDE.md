@@ -37,7 +37,22 @@ uv run pytest
 uv run ruff check . && uv run ruff format --check .
 ```
 
-Los comandos del frontend y de Docker los añade la Persona B al crear esas partes.
+```bash
+# Frontend (desde frontend/)
+npm ci
+npm run dev                      # http://localhost:5173 (reenvía /api a localhost:8000)
+npm test                         # Vitest, sin red
+npm run lint && npm run build    # ESLint y comprobación de tipos + build
+npm run gen:types                # regenera src/api/contract.gen.ts tras cambiar contracts/
+
+# Docker (desde la raíz)
+docker compose up --build                       # backend :8000 + frontend :5173
+VAULT_DIR=/ruta/a/mi/boveda docker compose up   # con tu bóveda en lugar de la demo
+docker compose --profile prod up --build prod   # imagen de producción en :8080
+```
+
+- **Tipos del frontend:** `frontend/src/api/contract.gen.ts` se genera desde `contracts/`; nunca se edita a mano. La CI falla si está desactualizado.
+- **Producción = un solo servicio:** el target `prod` del `Dockerfile` compila el frontend y FastAPI lo sirve junto a la API. El frontend siempre llama a rutas relativas (`/api/...`).
 
 ## Flujo de Git
 

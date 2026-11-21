@@ -19,7 +19,7 @@ body {
 }
 
 .app {
-  max-width: 960px;
+  max-width: 1240px;
   margin: 0 auto;
   padding: 2rem 1rem;
 }
@@ -368,6 +368,182 @@ body {
 
 @media (max-width: 640px) {
   .review__layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --- Cabecera y disposición ------------------------------------------- */
+.app__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.app__header .status {
+  margin-top: 0;
+}
+
+.grid-top {
+  display: grid;
+  grid-template-columns: minmax(320px, 2fr) 3fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.grid-top > .panel {
+  min-width: 0;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* --- HU2: investigación en directo ------------------------------------- */
+:root {
+  --explorer: #e3b341;
+  --researcher: #58a6ff;
+  --writer: #bc8cff;
+  --reviewer: #f778ba;
+}
+
+.research-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.research-form input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.45rem 0.7rem;
+}
+
+.pulse {
+  font-size: 0.8rem;
+  color: var(--accent);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 420px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+}
+
+.timeline__item {
+  display: flex;
+  gap: 0.4rem;
+  align-items: baseline;
+  padding: 0.25rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.timeline__item--node_proposed .timeline__text {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.timeline__item--error .timeline__text {
+  color: var(--down);
+}
+
+.timeline__item--tool_call .timeline__text,
+.timeline__item--tool_result .timeline__text {
+  color: var(--muted);
+  font-family: ui-monospace, monospace;
+  font-size: 0.8rem;
+}
+
+.agent {
+  flex: none;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  color: #0b0d12;
+  background: var(--muted);
+}
+
+.agent--explorer {
+  background: var(--explorer);
+}
+
+.agent--researcher {
+  background: var(--researcher);
+}
+
+.agent--writer {
+  background: var(--writer);
+}
+
+.agent--reviewer {
+  background: var(--reviewer);
+}
+
+/* --- HU1: grafo -------------------------------------------------------- */
+.graph__canvas {
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 0.8rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.legend__item::before {
+  content: '';
+  display: inline-block;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  margin-right: 0.3rem;
+}
+
+.legend__item--note::before {
+  background: #9aa1b2;
+}
+
+.legend__item--copilot::before {
+  background: #3fb950;
+}
+
+.legend__item--proposed::before {
+  background: #7c8cff;
+}
+
+@media (max-width: 900px) {
+  .grid-top {
     grid-template-columns: 1fr;
   }
 }

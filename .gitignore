@@ -30,9 +30,8 @@ coverage/
 data/
 
 # --- Bóveda real del usuario (solo se monta como volumen, nunca se sube) ---
-vault/
-# La bóveda de demostración sí se versiona
-!demo-vault/
+# El '/' inicial limita la regla a la raíz: sin él también ignoraría backend/vault/.
+/vault/
 
 # --- Editores y sistema ---
 .idea/
@@ -40,3 +39,6 @@ vault/
 !.vscode/extensions.json
 .DS_Store
 Thumbs.db
+
+# --- Notas aprobadas en local sobre la bóveda de demostración (se generan al usar la app) ---
+demo-vault/_copilot/

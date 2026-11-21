@@ -1,0 +1,46 @@
+[project]
+name = "vaultmind-backend"
+version = "0.1.0"
+description = "Backend de VaultMind: agentes de investigación, SmartRoute y API"
+readme = "README.md"
+requires-python = ">=3.12"
+# Versiones mínimas = últimas estables en PyPI a 21-11-2026.
+dependencies = [
+    "fastapi>=0.165.0",
+    "uvicorn[standard]>=0.54.0",
+    "pydantic>=2.14.4",
+    "pydantic-settings>=2.16.3",
+    "sse-starlette>=3.7.0",
+    "openai>=3.57.0",
+    "httpx>=0.28.1",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+    "pytest-asyncio>=1.5.0",
+    "jsonschema>=4.26.0",
+    "ruff>=0.17.6",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+# E/F: errores básicos · I: orden de imports · B: bugs probables · UP: sintaxis moderna · SIM: simplificaciones
+select = ["E", "F", "I", "B", "UP", "SIM"]
+
+[tool.ruff.lint.per-file-ignores]
+# Los prompts son texto para el modelo: partir líneas cambiaría lo que recibe.
+"agents/prompts.py" = ["E501"]

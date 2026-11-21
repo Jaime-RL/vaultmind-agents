@@ -1,0 +1,563 @@
+{
+  "topic": "Function calling y routing de modelos para un chatbot de clima con SLMs",
+  "events": [
+    {
+      "run_id": "run-demo-001",
+      "ts": "2026-11-23T10:00:01Z",
+      "agent": "explorer",
+      "type": "agent_thought",
+      "text": "Leo la bóveda: 28 notas y 87 enlaces. Busco conceptos mencionados sin nota."
+    },
+    {
+      "run_id": "run-demo-001",
+      "ts": "2026-11-23T10:00:01.500000Z",
+      "agent": "explorer",
+      "type": "tool_call",
+      "tool": "find_gaps",
+      "args": {}
+    },
+    {
+      "run_id": "run-demo-001",
+      "ts": "2026-11-23T10:00:03.500000Z",
+      "agent": "explorer",
+      "type": "tool_result",
+      "tool": "find_gaps",
+      "summary": "7 lagunas: LoRA, Routing de modelos, Function calling en SLMs, Reanálisis, Evaluación de agentes, Llama, Qwen"
+    },
+    {
+      "run_id": "run-demo-001",
+      "ts": "2026-11-23T10:00:05Z",
+      "agent": "explorer",
+      "type": "route_decision",
+      "task": "find_gaps",
+      "model": "qwen/qwen-2.5-7b-instruct",
+      "tier": "slm",
+      "reason": "tarea acotada: se intenta primero con el modelo pequeño",
+      "escalated": false
+    },
+    {
+      "run_id": "run-demo-001",
+      "ts": "2026-11-23T10:00:06Z",
+      "agent": "explorer",
+      "type": "agent_thought",
+      "text": "Para el tema pedido priorizo 3 lagunas: Function calling en SLMs, Routing de modelos y LoRA."
+    },
+    {
+      "run_id": "run-demo-001",
+      "ts": "2026-11-23T10:00:06.500000Z",
+      "agent": "researcher",
+      "type": "tool_call",
+      "tool": "search_arxiv",
+      "args": {
+        "query": "function calling small language models"
+      }
+    },
+    {
+      "run_id": "run-demo-001",
+      "ts": "2026-11-23T10:00:09.500000Z",
+      "agent": "researcher",
+      "type": "tool_result",
+      "tool": "search_arxiv",
+      "summary": "5 resultados de arXiv"
+    },
+    {
+      "run_id": "run-demo-001",
+      "ts": "2026-11-23T10:00:11Z",
+      "agent": "researcher",
+      "type": "route_decision",
+      "task": "summarize_paper",
+      "model": "qwen/qwen-2.5-7b-instruct",
+      "tier": "slm",
+      "reason": "tarea acotada: se intenta primero con el modelo pequeño",
+      "escalated": false
+    },
+    {
+      "run_id": "run-demo-001",
+      "ts": "2026-11-23T10:00:12Z",
+      "agent": "researcher",
+      "type": "agent_thought",
+      "text": "Los resultados coinciden en que los SLM fallan sobre todo en el formato de los argumentos, no en elegir la herramienta."
+    },
+    {
+      "run_id": "run-demo-001",
+      "ts": "2026-11-23T10:00:12.500000Z",
+      "agent": "researcher",
+      "type": "tool_call",
+      "tool": "search_arxiv",
+      "args": {
+        "query": "LLM routing cost quality"
+      }
+    },
+    {
+      "run_id": "run-demo-001",
+      "ts": "2026-11-23T10:00:15Z",
+      "agent": "researcher",
+      "type": "tool_result",
+      "tool": "search_arxiv",
+      "summary": "4 resultados de arXiv"
+    },
+    {
+      "run_id": "run-demo-001",
+      "ts": "2026-11-23T10:00:19Z",
+      "agent": "researcher",
+      "type": "route_decision",
+      "task": "summarize_paper",
+      "model": "qwen/qwen-2.5-72b-instruct",
+      "tier": "large",
+      "reason": "el modelo pequeño falló (La respuesta no es JSON válido); se escala al modelo grande",
+      "escalated": true
+    },
+    {
+      "run_id": "run-demo-001",
+      "ts": "2026-11-23T10:00:20Z",
+      "agent": "researcher",
+      "type": "agent_thought",
+      "text": "Resumen listo tras escalar: el router decide por tarea y escala si la respuesta barata no pasa una validación."
+    },
+    {
+      "run_id": "run-demo-001",
+      "ts": "2026-11-23T10:00:20.500000Z",
+      "agent": "researcher",
+      "type": "tool_call",
+      "tool": "search_arxiv",
+      "args": {
+        "query": "LoRA low-rank adaptation fine-tuning"
+      }
+    },
+    {
+      "run_id": "run-demo-001",
+      "ts": "2026-11-23T10:00:22.500000Z",
+      "agent": "researcher",
+      "type": "tool_result",
+      "tool": "search_arxiv",
+      "summary": "6 resultados de arXiv"
+    },
+    {
+      "run_id": "run-demo-001",
+      "ts": "2026-11-23T10:00:24Z",
+      "agent": "researcher",
+      "type": "route_decision",
+      "task": "summarize_paper",
+      "model": "qwen/qwen-2.5-7b-instruct",
+      "tier": "slm",
+      "reason": "tarea acotada: se intenta primero con el modelo pequeño",
+      "escalated": false
+    },
+    {
+      "run_id": "run-demo-001",
+      "ts": "2026-11-23T10:00:25Z",
+      "agent": "writer",
+      "type": "agent_thought",
+      "text": "Redacto la nota «Function calling en SLMs» enlazándola con Tool calling y SLM."
+    },
+    {
+      "run_id": "run-demo-001",
+      "ts": "2026-11-23T10:00:31Z",
+      "agent": "writer",
+      "type": "route_decision",
+      "task": "write_note",
+      "model": "qwen/qwen-2.5-72b-instruct",
+      "tier": "large",
+      "reason": "tarea compleja: se asigna directamente al modelo grande",
+      "escalated": false
+    },
+    {
+      "run_id": "run-demo-001",
+      "ts": "2026-11-23T10:00:32Z",
+      "agent": "writer",
+      "type": "node_proposed",
+      "proposal_id": "p-001",
+      "title": "Function calling en SLMs",
+      "links": [
+        "agentes/Tool calling",
+        "modelos/SLM",
+        "proyecto/Diario de trabajo"
+      ]
+    },
+    {
+      "run_id": "run-demo-001",
+      "ts": "2026-11-23T10:00:33Z",
+      "agent": "writer",
+      "type": "agent_thought",
+      "text": "Redacto «Routing de modelos» y la conecto con Sistemas multiagente."
+    },
+    {
+      "run_id": "run-demo-001",
+      "ts": "2026-11-23T10:00:38.500000Z",
+      "agent": "writer",
+      "type": "route_decision",
+      "task": "write_note",
+      "model": "qwen/qwen-2.5-72b-instruct",
+      "tier": "large",
+      "reason": "tarea compleja: se asigna directamente al modelo grande",
+      "escalated": false
+    },
+    {
+      "run_id": "run-demo-001",
+      "ts": "2026-11-23T10:00:39.500000Z",
+      "agent": "writer",
+      "type": "node_proposed",
+      "proposal_id": "p-002",
+      "title": "Routing de modelos",
+      "links": [
+        "modelos/LLM",
+        "agentes/Sistemas multiagente",
+        "proyecto/Objetivos del TFG"
+      ]
+    },
+    {
+      "run_id": "run-demo-001",
+      "ts": "2026-11-23T10:00:40.500000Z",
+      "agent": "writer",
+      "type": "agent_thought",
+      "text": "Redacto «LoRA» como técnica de fine-tuning eficiente para el SLM del TFG."
+    },
+    {
+      "run_id": "run-demo-001",
+      "ts": "2026-11-23T10:00:45.500000Z",
+      "agent": "writer",
+      "type": "route_decision",
+      "task": "write_note",
+      "model": "qwen/qwen-2.5-72b-instruct",
+      "tier": "large",
+      "reason": "tarea compleja: se asigna directamente al modelo grande",
+      "escalated": false
+    },
+    {
+      "run_id": "run-demo-001",
+      "ts": "2026-11-23T10:00:46.500000Z",
+      "agent": "writer",
+      "type": "node_proposed",
+      "proposal_id": "p-003",
+      "title": "LoRA",
+      "links": [
+        "modelos/Fine-tuning",
+        "modelos/SLM"
+      ]
+    },
+    {
+      "run_id": "run-demo-001",
+      "ts": "2026-11-23T10:00:47Z",
+      "agent": "reviewer",
+      "type": "tool_call",
+      "tool": "verify_claims",
+      "args": {
+        "proposal_id": "p-001"
+      }
+    },
+    {
+      "run_id": "run-demo-001",
+      "ts": "2026-11-23T10:00:49Z",
+      "agent": "reviewer",
+      "type": "tool_result",
+      "tool": "verify_claims",
+      "summary": "6 de 6 afirmaciones con respaldo"
+    },
+    {
+      "run_id": "run-demo-001",
+      "ts": "2026-11-23T10:00:50.500000Z",
+      "agent": "reviewer",
+      "type": "route_decision",
+      "task": "verify_claims",
+      "model": "qwen/qwen-2.5-7b-instruct",
+      "tier": "slm",
+      "reason": "tarea acotada: se intenta primero con el modelo pequeño",
+      "escalated": false
+    },
+    {
+      "run_id": "run-demo-001",
+      "ts": "2026-11-23T10:00:51Z",
+      "agent": "reviewer",
+      "type": "tool_call",
+      "tool": "verify_claims",
+      "args": {
+        "proposal_id": "p-002"
+      }
+    },
+    {
+      "run_id": "run-demo-001",
+      "ts": "2026-11-23T10:00:53Z",
+      "agent": "reviewer",
+      "type": "tool_result",
+      "tool": "verify_claims",
+      "summary": "4 de 5 afirmaciones con respaldo"
+    },
+    {
+      "run_id": "run-demo-001",
+      "ts": "2026-11-23T10:00:54.500000Z",
+      "agent": "reviewer",
+      "type": "route_decision",
+      "task": "verify_claims",
+      "model": "qwen/qwen-2.5-7b-instruct",
+      "tier": "slm",
+      "reason": "tarea acotada: se intenta primero con el modelo pequeño",
+      "escalated": false
+    },
+    {
+      "run_id": "run-demo-001",
+      "ts": "2026-11-23T10:00:55.500000Z",
+      "agent": "reviewer",
+      "type": "agent_thought",
+      "text": "En «Routing de modelos» una afirmación no tiene fuente: la marco para que la revises antes de aprobar."
+    },
+    {
+      "run_id": "run-demo-001",
+      "ts": "2026-11-23T10:00:56Z",
+      "agent": "reviewer",
+      "type": "tool_call",
+      "tool": "verify_claims",
+      "args": {
+        "proposal_id": "p-003"
+      }
+    },
+    {
+      "run_id": "run-demo-001",
+      "ts": "2026-11-23T10:00:58Z",
+      "agent": "reviewer",
+      "type": "tool_result",
+      "tool": "verify_claims",
+      "summary": "5 de 5 afirmaciones con respaldo"
+    },
+    {
+      "run_id": "run-demo-001",
+      "ts": "2026-11-23T10:00:59.500000Z",
+      "agent": "reviewer",
+      "type": "route_decision",
+      "task": "verify_claims",
+      "model": "qwen/qwen-2.5-7b-instruct",
+      "tier": "slm",
+      "reason": "tarea acotada: se intenta primero con el modelo pequeño",
+      "escalated": false
+    },
+    {
+      "run_id": "run-demo-001",
+      "ts": "2026-11-23T10:01:00.500000Z",
+      "agent": "system",
+      "type": "run_finished",
+      "stats": {
+        "notes_proposed": 3,
+        "cost_usd": 0.007078,
+        "baseline_cost_usd": 0.01024,
+        "savings_usd": 0.003162,
+        "escalations": 1,
+        "duration_s": 60.5
+      }
+    }
+  ],
+  "proposals": [
+    {
+      "id": "p-001",
+      "run_id": "run-demo-001",
+      "title": "Function calling en SLMs",
+      "markdown": "# Function calling en SLMs\n\nEl *function calling* (o [[Tool calling]]) permite que un modelo pida ejecutar una función\nexterna devolviendo su nombre y sus argumentos en un formato estructurado. En el TFG es la pieza\nque conecta el chatbot con datos climáticos reales.\n\nEn un [[SLM]] el reto principal es la fiabilidad: elegir la herramienta adecuada y generar los\nargumentos con el formato exacto. Una línea de trabajo es ajustar el modelo específicamente para\nescribir llamadas a APIs y darle acceso a la documentación de esas APIs, como propone Gorilla;\nsegún sus autores, así las llamadas son más precisas y el modelo alucina menos.\n\nImplicaciones para el TFG:\n- Validar siempre los argumentos antes de ejecutar una herramienta.\n- Medir por separado la elección de herramienta y la calidad de los argumentos\n  (pendiente desde el [[Diario de trabajo]]).\n\n## Fuentes\n\n- [Gorilla: Large Language Model Connected with Massive APIs](https://arxiv.org/abs/2305.15334)\n\n*Mencionada en: [[agentes/Tool calling]], [[proyecto/Diario de trabajo]]. Propuesta por VaultMind.*\n",
+      "sources": [
+        {
+          "title": "Gorilla: Large Language Model Connected with Massive APIs",
+          "url": "https://arxiv.org/abs/2305.15334"
+        }
+      ],
+      "links": [
+        "agentes/Tool calling",
+        "modelos/SLM",
+        "proyecto/Diario de trabajo"
+      ],
+      "agent": "writer",
+      "model": "qwen/qwen-2.5-72b-instruct",
+      "status": "pending",
+      "created_at": "2026-11-23T10:00:00Z"
+    },
+    {
+      "id": "p-002",
+      "run_id": "run-demo-001",
+      "title": "Routing de modelos",
+      "markdown": "# Routing de modelos\n\nUn router de modelos decide qué modelo atiende cada petición: uno barato cuando basta y un\n[[LLM]] grande para los casos difíciles. FrugalGPT propone una cascada que aprende qué modelos\nconsultar para cada entrada, con el objetivo de reducir el coste de usar APIs de LLMs\nmanteniendo o mejorando la precisión.\n\nEn un sistema de [[Sistemas multiagente]] cada agente hace tareas de dificultad distinta, así que\nel router puede asignar un modelo diferente a cada una. Estudiarlo es uno de los\n[[Objetivos del TFG]].\n\nUnas reglas fijas por tipo de tarea son el punto de partida más sencillo; con las trazas de uso se\npodría aprender después una política mejor.\n\n## Fuentes\n\n- [FrugalGPT: How to Use Large Language Models While Reducing Cost and Improving Performance](https://arxiv.org/abs/2305.05176)\n\n*Mencionada en: [[agentes/Sistemas multiagente]], [[proyecto/Objetivos del TFG]]. Propuesta por VaultMind.*\n",
+      "sources": [
+        {
+          "title": "FrugalGPT: How to Use Large Language Models While Reducing Cost and Improving Performance",
+          "url": "https://arxiv.org/abs/2305.05176"
+        }
+      ],
+      "links": [
+        "modelos/LLM",
+        "agentes/Sistemas multiagente",
+        "proyecto/Objetivos del TFG"
+      ],
+      "agent": "writer",
+      "model": "qwen/qwen-2.5-72b-instruct",
+      "status": "pending",
+      "created_at": "2026-11-23T10:00:00Z"
+    },
+    {
+      "id": "p-003",
+      "run_id": "run-demo-001",
+      "title": "LoRA",
+      "markdown": "# LoRA\n\nLoRA (*Low-Rank Adaptation*) es una técnica de [[Fine-tuning]] eficiente: congela los pesos del\nmodelo preentrenado y entrena solo unas matrices de bajo rango que se añaden a algunas capas. Así\nreduce mucho el número de parámetros entrenables y la memoria necesaria para el ajuste.\n\nEn el TFG permitiría especializar un [[SLM]] en preguntas sobre clima sin el coste de reentrenar\nel modelo entero.\n\n## Fuentes\n\n- [LoRA: Low-Rank Adaptation of Large Language Models](https://arxiv.org/abs/2106.09685)\n\n*Mencionada en: [[modelos/Fine-tuning]], [[modelos/SLM]]. Propuesta por VaultMind.*\n",
+      "sources": [
+        {
+          "title": "LoRA: Low-Rank Adaptation of Large Language Models",
+          "url": "https://arxiv.org/abs/2106.09685"
+        }
+      ],
+      "links": [
+        "modelos/Fine-tuning",
+        "modelos/SLM"
+      ],
+      "agent": "writer",
+      "model": "qwen/qwen-2.5-72b-instruct",
+      "status": "pending",
+      "created_at": "2026-11-23T10:00:00Z"
+    }
+  ],
+  "metrics": [
+    {
+      "metric": {
+        "run_id": "run-demo-001",
+        "agent": "explorer",
+        "task": "find_gaps",
+        "model": "qwen/qwen-2.5-7b-instruct",
+        "tier": "slm",
+        "prompt_tokens": 1800,
+        "completion_tokens": 120,
+        "cost_usd": 0.000204,
+        "latency_ms": 1500.0,
+        "escalated": false
+      },
+      "baseline_cost_usd": 0.000696
+    },
+    {
+      "metric": {
+        "run_id": "run-demo-001",
+        "agent": "researcher",
+        "task": "summarize_paper",
+        "model": "qwen/qwen-2.5-7b-instruct",
+        "tier": "slm",
+        "prompt_tokens": 2400,
+        "completion_tokens": 300,
+        "cost_usd": 0.0003,
+        "latency_ms": 1500.0,
+        "escalated": false
+      },
+      "baseline_cost_usd": 0.000984
+    },
+    {
+      "metric": {
+        "run_id": "run-demo-001",
+        "agent": "researcher",
+        "task": "summarize_paper",
+        "model": "qwen/qwen-2.5-72b-instruct",
+        "tier": "large",
+        "prompt_tokens": 2600,
+        "completion_tokens": 320,
+        "cost_usd": 0.001356,
+        "latency_ms": 4000.0,
+        "escalated": true
+      },
+      "baseline_cost_usd": 0.001064
+    },
+    {
+      "metric": {
+        "run_id": "run-demo-001",
+        "agent": "researcher",
+        "task": "summarize_paper",
+        "model": "qwen/qwen-2.5-7b-instruct",
+        "tier": "slm",
+        "prompt_tokens": 2200,
+        "completion_tokens": 280,
+        "cost_usd": 0.000276,
+        "latency_ms": 1500.0,
+        "escalated": false
+      },
+      "baseline_cost_usd": 0.000904
+    },
+    {
+      "metric": {
+        "run_id": "run-demo-001",
+        "agent": "writer",
+        "task": "write_note",
+        "model": "qwen/qwen-2.5-72b-instruct",
+        "tier": "large",
+        "prompt_tokens": 3200,
+        "completion_tokens": 900,
+        "cost_usd": 0.001512,
+        "latency_ms": 6000.0,
+        "escalated": false
+      },
+      "baseline_cost_usd": 0.001512
+    },
+    {
+      "metric": {
+        "run_id": "run-demo-001",
+        "agent": "writer",
+        "task": "write_note",
+        "model": "qwen/qwen-2.5-72b-instruct",
+        "tier": "large",
+        "prompt_tokens": 3000,
+        "completion_tokens": 850,
+        "cost_usd": 0.00142,
+        "latency_ms": 5500.0,
+        "escalated": false
+      },
+      "baseline_cost_usd": 0.00142
+    },
+    {
+      "metric": {
+        "run_id": "run-demo-001",
+        "agent": "writer",
+        "task": "write_note",
+        "model": "qwen/qwen-2.5-72b-instruct",
+        "tier": "large",
+        "prompt_tokens": 2800,
+        "completion_tokens": 780,
+        "cost_usd": 0.00132,
+        "latency_ms": 5000.0,
+        "escalated": false
+      },
+      "baseline_cost_usd": 0.00132
+    },
+    {
+      "metric": {
+        "run_id": "run-demo-001",
+        "agent": "reviewer",
+        "task": "verify_claims",
+        "model": "qwen/qwen-2.5-7b-instruct",
+        "tier": "slm",
+        "prompt_tokens": 2100,
+        "completion_tokens": 150,
+        "cost_usd": 0.00024,
+        "latency_ms": 1500.0,
+        "escalated": false
+      },
+      "baseline_cost_usd": 0.000816
+    },
+    {
+      "metric": {
+        "run_id": "run-demo-001",
+        "agent": "reviewer",
+        "task": "verify_claims",
+        "model": "qwen/qwen-2.5-7b-instruct",
+        "tier": "slm",
+        "prompt_tokens": 2000,
+        "completion_tokens": 160,
+        "cost_usd": 0.000232,
+        "latency_ms": 1500.0,
+        "escalated": false
+      },
+      "baseline_cost_usd": 0.000784
+    },
+    {
+      "metric": {
+        "run_id": "run-demo-001",
+        "agent": "reviewer",
+        "task": "verify_claims",
+        "model": "qwen/qwen-2.5-7b-instruct",
+        "tier": "slm",
+        "prompt_tokens": 1900,
+        "completion_tokens": 140,
+        "cost_usd": 0.000218,
+        "latency_ms": 1500.0,
+        "escalated": false
+      },
+      "baseline_cost_usd": 0.00074
+    }
+  ]
+}

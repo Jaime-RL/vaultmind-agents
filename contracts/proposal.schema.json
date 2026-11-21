@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "proposal.schema.json",
+  "title": "Proposal",
+  "description": "GET /api/proposals devuelve una lista de Proposal. POST /api/proposals/{id} recibe ProposalAction y devuelve la Proposal actualizada.",
+  "$defs": {
+    "Source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "url"],
+      "properties": {
+        "title": { "type": "string" },
+        "url": { "type": "string", "format": "uri" }
+      }
+    },
+    "Proposal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "run_id", "title", "markdown", "sources", "links", "agent", "model", "status", "created_at"],
+      "properties": {
+        "id": { "type": "string" },
+        "run_id": { "type": "string" },
+        "title": { "type": "string" },
+        "markdown": { "type": "string", "description": "Contenido completo de la nota, con [[wikilinks]]." },
+        "sources": { "type": "array", "items": { "$ref": "#/$defs/Source" } },
+        "links": { "type": "array", "items": { "type": "string" }, "description": "ids de los nodos enlazados." },
+        "agent": { "type": "string", "enum": ["explorer", "researcher", "writer", "reviewer", "system"] },
+        "model": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "created_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "ProposalList": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Proposal" }
+    },
+    "ProposalAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["action"],
+      "properties": {
+        "action": { "type": "string", "enum": ["approve", "reject"] }
+      }
+    }
+  }
+}

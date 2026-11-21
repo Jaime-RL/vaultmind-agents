@@ -1,0 +1,83 @@
+# Entorno de desarrollo completo con un solo comando:
+#
+#   docker compose up --build
+#
+#   Frontend → http://localhost:5173   (Vite reenvía /api al backend)
+#   Backend  → http://localhost:8000/docs
+#
+# Para probar la imagen de producción (un solo servicio):
+#   docker compose --profile prod up --build prod   → http://localhost:8080
+
+services:
+  backend:
+    build:
+      context: .
+      target: backend-dev
+    ports:
+      - "8000:8000"
+    env_file:
+      # Opcional: sin .env la API arranca igual (POST /api/research responde 503).
+      - path: .env
+        required: false
+    environment:
+      # Rutas DENTRO del contenedor. Ganan a las de .env, que pueden ser rutas del host
+      # (VAULT_PATH=/home/usuario/...) y aquí no existirían.
+      VAULT_PATH: /app/demo-vault
+      DATABASE_PATH: /app/data/vaultmind.db
+      # Sin clave de API, DEMO_MODE=true reproduce una investigación grabada: la
+      # interfaz se puede desarrollar entera sin gastar saldo. Se cambia en .env.
+      DEMO_MODE: ${DEMO_MODE:-true}
+      DEMO_SPEED: ${DEMO_SPEED:-3}
+    volumes:
+      # Código montado para que uvicorn --reload vea los cambios al instante.
+      - ./backend:/app/backend
+      - ./contracts:/app/contracts:ro
+      - ./fixtures:/app/fixtures:ro
+      # La bóveda: la de demostración por defecto. Para usar la tuya:
+      #   VAULT_DIR=/ruta/absoluta/a/tu/boveda docker compose up
+      - ${VAULT_DIR:-./demo-vault}:/app/demo-vault
+      # SQLite en un volumen con nombre: sobrevive a `docker compose down`.
+      - vaultmind-data:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  frontend:
+    build:
+      context: .
+      target: frontend-dev
+    ports:
+      - "5173:5173"
+    environment:
+      # Dentro de la red de compose, el backend se llama "backend", no "localhost".
+      VITE_PROXY_TARGET: http://backend:8000
+      # Pon true si los cambios no recargan (carpeta montada desde Windows o macOS).
+      VITE_USE_POLLING: ${VITE_USE_POLLING:-false}
+    volumes:
+      - ./frontend:/app/frontend
+      - ./contracts:/app/contracts:ro
+      # Los tests del frontend reproducen fixtures/run_example.jsonl.
+      - ./fixtures:/app/fixtures:ro
+      # Volumen anónimo: conserva el node_modules de la imagen (Linux) en lugar de
+      # que lo tape el del host montado arriba (que puede ser de otro sistema operativo).
+      - /app/frontend/node_modules
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  prod:
+    profiles: ["prod"]
+    build:
+      context: .
+      target: prod
+    ports:
+      - "8080:8000"
+    env_file:
+      - path: .env
+        required: false
+
+volumes:
+  vaultmind-data:

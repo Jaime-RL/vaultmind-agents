@@ -1,0 +1,743 @@
+/* Tema oscuro por defecto: el grafo 3D se lee mejor sobre fondo oscuro. */
+:root {
+  --bg: #0f1117;
+  --surface: #181b24;
+  --surface-2: #20242f;
+  --border: #2d3240;
+  --text: #e6e8ee;
+  --muted: #9aa1b2;
+  --accent: #a371f7;
+  --ok: #3fb950;
+  --down: #f85149;
+  --checking: #d29922;
+  --radius: 10px;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  line-height: 1.45;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+}
+
+/* ---------- Estructura: barra superior + zona de trabajo a pantalla completa ---------- */
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+}
+
+.topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.5rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.topbar__brand h1 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.topbar__tagline {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.workspace {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 0;
+}
+
+.workspace__graph {
+  position: relative;
+  min-height: 320px;
+}
+
+/* ---------- Grafo ---------- */
+
+.graph,
+.graph-canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.graph__summary {
+  position: absolute;
+  top: 0.75rem;
+  left: 1rem;
+  z-index: 1;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+  pointer-events: none;
+}
+
+.graph-message {
+  margin: 0;
+  padding: 2rem 1rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+.graph-message--error {
+  color: var(--down);
+}
+
+.legend {
+  position: absolute;
+  left: 1rem;
+  bottom: 1rem;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+  max-width: calc(100% - 2rem);
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: rgb(24 27 36 / 0.85);
+  font-size: 0.78rem;
+}
+
+.legend__title {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.legend__dot,
+.legend__ring {
+  display: inline-block;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+}
+
+.legend__ring {
+  border: 2px solid;
+}
+
+.legend__dot--note {
+  background: #6f7f99;
+}
+
+/* ---------- Componentes comunes ---------- */
+
+.status {
+  margin: 0 0 0 auto;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.status--ok {
+  color: var(--ok);
+}
+
+.status--down {
+  color: var(--down);
+}
+
+.status--checking {
+  color: var(--checking);
+}
+
+.button {
+  padding: 0.45rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.button:hover:not(:disabled) {
+  border-color: var(--muted);
+}
+
+.button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.button--primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #0f1117;
+  font-weight: 600;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ---------- Zona de trabajo con panel lateral ---------- */
+
+@media (min-width: 900px) {
+  .workspace {
+    grid-template-columns: minmax(0, 1fr) minmax(340px, 30%);
+  }
+}
+
+.workspace__side {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-left: 1px solid var(--border);
+  background: var(--surface);
+}
+
+@media (max-width: 899px) {
+  .workspace__graph {
+    min-height: 55vh;
+  }
+
+  .workspace__side {
+    border-left: 0;
+    border-top: 1px solid var(--border);
+  }
+}
+
+/* ---------- Formulario de investigación ---------- */
+
+.research-form {
+  display: flex;
+  flex: 1 1 360px;
+  gap: 0.5rem;
+  min-width: 0;
+  max-width: 640px;
+}
+
+/* En móvil el formulario ocupa su propia fila completa (el botón no se sale). */
+@media (max-width: 599px) {
+  .research-form {
+    flex-basis: 100%;
+    order: 3;
+  }
+
+  .topbar__tagline {
+    display: none;
+  }
+}
+
+.research-form__input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ---------- Pestañas ---------- */
+
+.tabs {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.tabs__list {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+}
+
+.tabs__tab {
+  flex: 1;
+  padding: 0.65rem 0.5rem;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tabs__tab[aria-selected='true'] {
+  border-bottom-color: var(--accent);
+  color: var(--text);
+}
+
+.tabs__badge {
+  margin-left: 0.4rem;
+  padding: 0 0.45rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #0f1117;
+  font-size: 0.75rem;
+}
+
+.tabs__panel {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* ---------- Panel de agentes ---------- */
+
+.panel-empty {
+  margin: 0;
+  padding: 1.25rem 1rem;
+  color: var(--muted);
+}
+
+.agents-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.agents-panel__topic {
+  margin: 0;
+  padding: 0.75rem 1rem 0.25rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.event-log {
+  flex: 1;
+  margin: 0;
+  padding: 0.5rem 1rem 1rem;
+  overflow-y: auto;
+  list-style: none;
+  font-size: 0.86rem;
+}
+
+.event {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid rgb(45 50 64 / 0.5);
+  animation: fade-in 0.35s ease-out;
+}
+
+.agent-chip {
+  flex: none;
+  min-width: 5.5rem;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.event__indent {
+  flex: none;
+  min-width: 5.5rem;
+  color: var(--muted);
+  text-align: right;
+}
+
+.event--result,
+.event__reason {
+  color: var(--muted);
+}
+
+.event--proposed {
+  background: rgb(213 81 129 / 0.1);
+}
+
+.event--finished {
+  flex-direction: column;
+  margin-top: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--ok);
+  border-radius: var(--radius);
+}
+
+.event--error {
+  color: var(--down);
+}
+
+.tier-badge {
+  flex: none;
+  min-width: 5.5rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.tier-badge {
+  color: var(--text);
+}
+
+.escalated {
+  color: var(--checking);
+}
+
+.agents-panel__running {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.6rem 1rem;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.spinner {
+  width: 0.85rem;
+  height: 0.85rem;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.notice {
+  margin: 0.75rem 1rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--radius);
+}
+
+.notice p {
+  margin: 0 0 0.5rem;
+}
+
+.notice--error {
+  border: 1px solid var(--down);
+  color: var(--down);
+}
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85em;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .event,
+  .spinner {
+    animation: none;
+  }
+}
+
+/* ---------- Revisión de notas ---------- */
+
+.review-panel__intro {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.proposal-list {
+  margin: 0;
+  padding: 0 0.75rem 1rem;
+  list-style: none;
+}
+
+.proposal {
+  margin-bottom: 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.proposal--open {
+  border-color: var(--accent);
+}
+
+.proposal__header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  width: 100%;
+  padding: 0.65rem 0.8rem;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.proposal__title {
+  font-weight: 600;
+}
+
+.proposal__meta {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.proposal__body {
+  padding: 0 0.8rem 0.8rem;
+  border-top: 1px solid var(--border);
+}
+
+.note-markdown {
+  font-size: 0.9rem;
+}
+
+.note-markdown h1,
+.note-markdown h2,
+.note-markdown h3 {
+  margin: 0.9rem 0 0.4rem;
+  font-size: 1rem;
+}
+
+.note-markdown a,
+.proposal__sources a {
+  color: #79c0ff;
+}
+
+.wikilink {
+  padding: 0 0.3rem;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+/* Enlace a una nota que ya existe (fondo) frente a una que aún no existe (borde
+   discontinuo): se distinguen por la forma, no solo por el color. */
+.wikilink--known {
+  background: rgb(56 139 253 / 0.18);
+  color: var(--text);
+}
+
+.wikilink--new {
+  border: 1px dashed var(--muted);
+  color: var(--muted);
+}
+
+.proposal__sources h3 {
+  margin: 0.75rem 0 0.25rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.proposal__sources ol {
+  margin: 0;
+  padding-left: 1.2rem;
+  font-size: 0.85rem;
+}
+
+.proposal__actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.9rem;
+}
+
+/* ---------- Panel del router ---------- */
+
+.router-panel {
+  padding: 0.75rem 1rem 1rem;
+}
+
+.segmented {
+  display: inline-flex;
+  margin-bottom: 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.segmented button {
+  padding: 0.35rem 0.8rem;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.segmented button[aria-pressed='true'] {
+  background: var(--surface-2);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.segmented button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.kpi--hero {
+  grid-column: 1 / -1;
+}
+
+.kpi__label,
+.kpi__hint {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.kpi__value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.kpi--hero .kpi__value {
+  font-size: 2.2rem;
+}
+
+.cost-bars {
+  margin: 1rem 0;
+}
+
+.cost-bars figcaption {
+  margin-bottom: 0.4rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.cost-bars__row {
+  display: grid;
+  grid-template-columns: 8.5rem minmax(0, 1fr) 4.5rem;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+  font-size: 0.82rem;
+}
+
+.cost-bars__track {
+  height: 0.75rem;
+}
+
+.cost-bars__bar {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  border-radius: 0 4px 4px 0;
+  background: #5c6680;
+}
+
+.cost-bars__bar--emphasis {
+  background: #388bfd;
+}
+
+.cost-bars__value {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.metrics-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.metrics-table caption {
+  margin-bottom: 0.4rem;
+  color: var(--muted);
+  font-weight: 600;
+  text-align: left;
+}
+
+.metrics-table th,
+.metrics-table td {
+  padding: 0.4rem 0.35rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.metrics-table th {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.metrics-table .num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.metrics-table__model {
+  display: block;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.metrics-table tr.is-escalated {
+  background: rgb(210 153 34 / 0.08);
+}
+
+/* Nombres de modelo y de tarea sin cortar: si no caben, la tabla se desplaza. */
+.metrics-table td:nth-child(2),
+.metrics-table td:nth-child(3) {
+  white-space: nowrap;
+}
+
+.metrics-table .escalated {
+  display: block;
+}
+
+.tier-dot {
+  display: inline-block;
+  width: 0.6rem;
+  height: 0.6rem;
+  margin-right: 0.2rem;
+  border-radius: 50%;
+  vertical-align: baseline;
+}

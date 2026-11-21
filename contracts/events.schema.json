@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "events.schema.json",
+  "title": "AgentEvent",
+  "description": "GET /api/research/{run_id}/events (SSE). Cada mensaje SSE lleva en 'data' un objeto de este esquema; el campo 'type' dice cuál.",
+  "oneOf": [
+    { "$ref": "#/$defs/AgentThought" },
+    { "$ref": "#/$defs/ToolCall" },
+    { "$ref": "#/$defs/ToolResult" },
+    { "$ref": "#/$defs/RouteDecision" },
+    { "$ref": "#/$defs/NodeProposed" },
+    { "$ref": "#/$defs/RunFinished" },
+    { "$ref": "#/$defs/RunError" }
+  ],
+  "$defs": {
+    "Agent": {
+      "type": "string",
+      "enum": ["explorer", "researcher", "writer", "reviewer", "system"],
+      "description": "'system' se usa para eventos del orquestador (fin de la investigación, errores)."
+    },
+    "Tier": { "type": "string", "enum": ["slm", "large"] },
+    "AgentThought": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "run_id", "ts", "agent", "text"],
+      "properties": {
+        "type": { "const": "agent_thought" },
+        "run_id": { "type": "string" },
+        "ts": { "type": "string", "format": "date-time" },
+        "agent": { "$ref": "#/$defs/Agent" },
+        "text": { "type": "string" }
+      }
+    },
+    "ToolCall": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "run_id", "ts", "agent", "tool", "args"],
+      "properties": {
+        "type": { "const": "tool_call" },
+        "run_id": { "type": "string" },
+        "ts": { "type": "string", "format": "date-time" },
+        "agent": { "$ref": "#/$defs/Agent" },
+        "tool": { "type": "string", "description": "Ej.: 'search_arxiv', 'read_note', 'find_gaps'." },
+        "args": { "type": "object" }
+      }
+    },
+    "ToolResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "run_id", "ts", "agent", "tool", "summary"],
+      "properties": {
+        "type": { "const": "tool_result" },
+        "run_id": { "type": "string" },
+        "ts": { "type": "string", "format": "date-time" },
+        "agent": { "$ref": "#/$defs/Agent" },
+        "tool": { "type": "string" },
+        "summary": { "type": "string", "description": "Resumen corto y legible del resultado." }
+      }
+    },
+    "RouteDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "run_id", "ts", "agent", "task", "model", "tier", "reason", "escalated"],
+      "properties": {
+        "type": { "const": "route_decision" },
+        "run_id": { "type": "string" },
+        "ts": { "type": "string", "format": "date-time" },
+        "agent": { "$ref": "#/$defs/Agent" },
+        "task": { "type": "string", "description": "Tipo de tarea. Ej.: 'find_gaps', 'summarize_paper', 'write_note', 'verify_claims'." },
+        "model": { "type": "string", "description": "Identificador del modelo usado." },
+        "tier": { "$ref": "#/$defs/Tier" },
+        "reason": { "type": "string", "description": "Por qué se eligió este modelo." },
+        "escalated": { "type": "boolean", "description": "true si el SLM falló y se repitió con el modelo grande." }
+      }
+    },
+    "NodeProposed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "run_id", "ts", "agent", "proposal_id", "title", "links"],
+      "properties": {
+        "type": { "const": "node_proposed" },
+        "run_id": { "type": "string" },
+        "ts": { "type": "string", "format": "date-time" },
+        "agent": { "$ref": "#/$defs/Agent" },
+        "proposal_id": { "type": "string" },
+        "title": { "type": "string" },
+        "links": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "ids de los nodos existentes a los que enlaza la nota propuesta."
+        }
+      }
+    },
+    "RunStats": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["notes_proposed", "cost_usd", "baseline_cost_usd", "savings_usd", "escalations", "duration_s"],
+      "properties": {
+        "notes_proposed": { "type": "integer", "minimum": 0 },
+        "cost_usd": { "type": "number", "minimum": 0 },
+        "baseline_cost_usd": { "type": "number", "minimum": 0, "description": "Coste estimado si todo lo hubiera hecho el modelo grande." },
+        "savings_usd": { "type": "number" },
+        "escalations": { "type": "integer", "minimum": 0 },
+        "duration_s": { "type": "number", "minimum": 0 }
+      }
+    },
+    "RunFinished": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "run_id", "ts", "agent", "stats"],
+      "properties": {
+        "type": { "const": "run_finished" },
+        "run_id": { "type": "string" },
+        "ts": { "type": "string", "format": "date-time" },
+        "agent": { "$ref": "#/$defs/Agent" },
+        "stats": { "$ref": "#/$defs/RunStats" }
+      }
+    },
+    "RunError": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "run_id", "ts", "agent", "message"],
+      "properties": {
+        "type": { "const": "error" },
+        "run_id": { "type": "string" },
+        "ts": { "type": "string", "format": "date-time" },
+        "agent": { "$ref": "#/$defs/Agent" },
+        "message": { "type": "string" }
+      }
+    }
+  }
+}

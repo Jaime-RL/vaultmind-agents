@@ -1,0 +1,32 @@
+# Lo que NUNCA entra en el contexto de build de Docker.
+# Además de acelerar el build, evita que un secreto acabe dentro de una imagen.
+
+# Secretos
+.env
+.env.*
+!.env.example
+
+# Git y editores
+.git
+.github
+.devcontainer
+.idea
+.vscode
+
+# Dependencias y artefactos: se instalan o generan dentro de la imagen
+**/node_modules
+**/.venv
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.ruff_cache
+frontend/dist
+coverage
+
+# Datos locales y la bóveda real del usuario
+data
+vault
+*.db
+*.sqlite
+*.sqlite3
+demo-vault/_copilot

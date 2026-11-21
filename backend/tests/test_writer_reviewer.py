@@ -152,3 +152,26 @@ async def test_reviewer_failure_does_not_lose_the_proposal(
 
     assert reviews == []
     assert "No pude revisar" in sink.events[-1].text
+
+
+async def test_writer_saves_each_proposal_before_emitting_node_proposed(
+    make_router, emitter, sink, vault, finding
+):
+    """La interfaz pide /api/proposals al recibir node_proposed: la nota ya debe estar guardada."""
+    router, _ = make_router([note()])
+    events_when_saved: list[int] = []
+
+    async def save(proposal):
+        events_when_saved.append(sum(1 for e in sink.events if e.type == "node_proposed"))
+
+    [proposal] = await write_notes(
+        topic="SLMs",
+        findings=[finding],
+        vault=vault,
+        router=router,
+        emitter=emitter,
+        on_proposal=save,
+    )
+
+    assert events_when_saved == [0]  # se guardó cuando aún no se había emitido el evento
+    assert any(e.type == "node_proposed" and e.proposal_id == proposal.id for e in sink.events)

@@ -9,6 +9,7 @@ Lo que se deja al modelo: redactar. Lo que NO se le deja:
 
 import re
 import uuid
+from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
 
 from agents.events import Emitter
@@ -22,6 +23,11 @@ from vault.parser import WIKILINK_RE, LinkResolver
 
 MAX_TITLES_IN_PROMPT = 150
 
+# Se llama con cada nota en cuanto está redactada, ANTES de emitir node_proposed:
+# así, cuando la interfaz recibe el evento y pide /api/proposals, la nota ya está
+# guardada (en el modo demo ya se hacía en este orden).
+ProposalCallback = Callable[[Proposal], Awaitable[None]]
+
 
 def require_markdown_note(response: LLMResponse) -> None:
     """Validador: la nota debe tener contenido real, no una frase suelta."""
@@ -33,14 +39,22 @@ def require_markdown_note(response: LLMResponse) -> None:
 
 
 async def write_notes(
-    *, topic: str, findings: list[Finding], vault: Vault, router: SmartRoute, emitter: Emitter
+    *,
+    topic: str,
+    findings: list[Finding],
+    vault: Vault,
+    router: SmartRoute,
+    emitter: Emitter,
+    on_proposal: ProposalCallback | None = None,
 ) -> list[Proposal]:
     titles = sorted(note.title for note in vault.notes.values())[:MAX_TITLES_IN_PROMPT]
     resolver = LinkResolver(list(vault.notes))
     proposals = []
     for finding in findings:
         try:
-            proposals.append(await write_note(topic, finding, titles, resolver, router, emitter))
+            proposals.append(
+                await write_note(topic, finding, titles, resolver, router, emitter, on_proposal)
+            )
         except LLMError as exc:
             await emitter.thought("writer", f"No pude redactar «{finding.gap.name}»: {exc}")
     return proposals
@@ -53,6 +67,7 @@ async def write_note(
     resolver: LinkResolver,
     router: SmartRoute,
     emitter: Emitter,
+    on_proposal: ProposalCallback | None = None,
 ) -> Proposal:
     title = finding.gap.name
     await emitter.thought("writer", f"Redacto la nota «{title}».")
@@ -94,6 +109,8 @@ async def write_note(
         status="pending",
         created_at=datetime.now(UTC),
     )
+    if on_proposal is not None:
+        await on_proposal(proposal)
     await emitter.proposed(proposal.id, proposal.title, proposal.links)
     return proposal
 

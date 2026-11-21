@@ -7,7 +7,7 @@ la interfaz siempre sabe cuándo ha acabado la investigación.
 """
 
 import time
-from collections.abc import Awaitable, Callable
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from agents.events import Emitter
@@ -15,12 +15,10 @@ from agents.explorer import Gap, explore
 from agents.researcher import Finding, research
 from agents.reviewer import Review, review_notes
 from agents.tools import Tool
-from agents.writer import write_notes
+from agents.writer import ProposalCallback, write_notes
 from app.contracts import Proposal, RunStats
 from router import SmartRoute
 from vault import Vault
-
-ProposalCallback = Callable[[Proposal], Awaitable[None]]
 
 
 @dataclass
@@ -52,13 +50,17 @@ async def run_research(
         result.findings = await research(
             topic=topic, gaps=result.gaps, router=router, emitter=emitter, search_tool=search_tool
         )
+        # Cada nota se guarda (on_proposal) en cuanto se redacta y antes de emitir su
+        # node_proposed: la interfaz puede pedirla nada más recibir el evento, y si el
+        # Revisor falla después, las notas ya están a salvo.
         result.proposals = await write_notes(
-            topic=topic, findings=result.findings, vault=vault, router=router, emitter=emitter
+            topic=topic,
+            findings=result.findings,
+            vault=vault,
+            router=router,
+            emitter=emitter,
+            on_proposal=on_proposal,
         )
-        # Se guardan antes de revisarlas: si el Revisor falla, las notas no se pierden.
-        if on_proposal is not None:
-            for proposal in result.proposals:
-                await on_proposal(proposal)
         result.reviews = await review_notes(
             proposals=result.proposals, findings=result.findings, router=router, emitter=emitter
         )

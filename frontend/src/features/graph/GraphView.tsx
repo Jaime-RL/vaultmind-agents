@@ -32,10 +32,11 @@ interface Props {
   state: VaultState
   proposed?: ProposedNode[]
   focusId?: string
+  fitAll?: boolean
   onRetry?: () => void
 }
 
-export function GraphView({ state, proposed = [], focusId, onRetry }: Props) {
+export function GraphView({ state, proposed = [], focusId, fitAll, onRetry }: Props) {
   if (state.status === 'loading') {
     return (
       <p className="graph-message" role="status">
@@ -62,17 +63,19 @@ export function GraphView({ state, proposed = [], focusId, onRetry }: Props) {
       </p>
     )
   }
-  return <ReadyGraph vault={state.vault} proposed={proposed} focusId={focusId} />
+  return <ReadyGraph vault={state.vault} proposed={proposed} focusId={focusId} fitAll={fitAll} />
 }
 
 function ReadyGraph({
   vault,
   proposed,
   focusId,
+  fitAll,
 }: {
   vault: VaultGraph
   proposed: ProposedNode[]
   focusId?: string
+  fitAll?: boolean
 }) {
   const data = useMemo(() => buildGraphData(vault, proposed), [vault, proposed])
   const pending = proposed.filter((p) => p.status !== 'rejected').length
@@ -85,7 +88,7 @@ function ReadyGraph({
       </p>
       <GraphErrorBoundary>
         <Suspense fallback={<p className="graph-message">Preparando el grafo 3D…</p>}>
-          <VaultGraph3D data={data} focusId={focusId} />
+          <VaultGraph3D data={data} focusId={focusId} fitAll={fitAll} />
         </Suspense>
       </GraphErrorBoundary>
       <Legend />

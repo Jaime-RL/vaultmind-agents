@@ -175,3 +175,8 @@ def test_without_demo_mode_and_key_research_is_unavailable(tmp_path):
 
     with TestClient(create_app(settings, services=build_services(settings))) as client:
         assert client.post("/api/research", json={"topic": "SLMs"}).status_code == 503
+
+
+def test_missing_demo_file_fails_with_a_clear_message(tmp_path):
+    with pytest.raises(FileNotFoundError, match="fixtures/"):
+        DemoRun.load(tmp_path / "no-existe.json")

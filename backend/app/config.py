@@ -48,6 +48,10 @@ class Settings(BaseSettings):
     max_concurrent_runs: int = 3
     finished_run_retention_s: float = 300.0
 
+    # Carpeta con el frontend compilado (dist/ de Vite). Si existe, FastAPI la sirve en "/"
+    # junto a la API: en producción todo es un solo servicio, sin CORS. La define el Dockerfile.
+    frontend_dist: Path | None = None
+
     # Orígenes que pueden llamar a la API desde el navegador (el dev server de Vite por defecto).
     cors_origins: list[str] = ["http://localhost:5173"]
 

@@ -7,7 +7,9 @@ app/      Aplicación FastAPI, configuración y modelos del contrato
 api/      Endpoints
 llm/      Interfaz LLMClient, cliente real (API compatible con OpenAI) y FakeLLMClient para tests
 vault/    Parser de la bóveda de Obsidian: notas, [[wikilinks]], etiquetas y lagunas
+router/   SmartRoute: política por tarea, validadores, escalada al modelo grande y costes
+scripts/  Utilidades (p. ej. regenerar fixtures/run_example.jsonl)
 tests/    Tests (ninguno llama a un LLM ni a internet)
 ```
 
-Próximas carpetas: `router/` (SmartRoute) y `agents/`.
+Próxima carpeta: `agents/`.

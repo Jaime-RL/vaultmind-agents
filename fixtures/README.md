@@ -16,3 +16,9 @@ Lo genera `backend/scripts/make_run_fixture.py` con los modelos del contrato y l
 ```bash
 PYTHONPATH=. uv run python scripts/make_run_fixture.py
 ```
+
+## `demo_run.json`
+
+La misma investigación con todo lo necesario para el **modo demo** del backend (`DEMO_MODE=true`, la versión de la URL pública): eventos, las 3 notas propuestas completas (con fuentes reales de arXiv) y las métricas de cada tarea. Lo genera el mismo script y lo vigila `backend/tests/test_demo.py`.
+
+> Las cifras de coste y ahorro de ambos ficheros usan el precio real del SLM (Qwen2.5 7B Instruct) pero un precio **orientativo** para el modelo grande, que aún no está elegido.

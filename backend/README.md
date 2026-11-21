@@ -14,6 +14,14 @@ uv run ruff check . && uv run ruff format --check .
 
 Sin `.env` la API arranca con la bóveda de demostración: `/api/vault`, `/api/proposals` y `/api/metrics` funcionan, y `POST /api/research` responde **503** explicando qué falta. Para investigar de verdad hacen falta `LLM_API_KEY`, `SLM_MODEL` y `LARGE_MODEL` (ver [`.env.example`](../.env.example)).
 
+### Modo demo (URL pública)
+
+Con `DEMO_MODE=true`, `POST /api/research` no llama a ningún modelo: reproduce una investigación grabada (`fixtures/demo_run.json`) por el mismo camino que una real (SSE, SQLite, propuestas y métricas). No necesita clave de API y nadie puede gastar saldo. `DEMO_SPEED=2` la reproduce el doble de rápido. El primer evento avisa al usuario de que es una grabación.
+
+```bash
+DEMO_MODE=true DEMO_SPEED=2 uv run uvicorn app.main:app
+```
+
 ## Endpoints
 
 | Endpoint | Qué hace |
@@ -35,7 +43,7 @@ app/      FastAPI, configuración, servicios y modelos del contrato
 evals/    Evals con modelos reales (fuera de la CI)
 llm/      Interfaz LLMClient, cliente compatible con OpenAI y FakeLLMClient para tests
 router/   SmartRoute: política por tarea, validadores, escalada y costes
-runs/     Investigaciones en segundo plano y reparto de eventos en directo
+runs/     Investigaciones en segundo plano, modo demo y reparto de eventos en directo
 store/    Persistencia en SQLite
 vault/    Parser de la bóveda y escritura segura de notas aprobadas
 scripts/  Utilidades (regenerar fixtures/run_example.jsonl)

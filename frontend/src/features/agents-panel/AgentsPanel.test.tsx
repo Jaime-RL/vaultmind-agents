@@ -33,8 +33,8 @@ describe('AgentsPanel', () => {
     const log = screen.getByRole('log')
 
     expect(within(log).getByText('Buscando en arXiv: «function calling small language models»')).toBeInTheDocument()
-    expect(within(log).getAllByText(/🟢 SLM/).length).toBeGreaterThan(0)
-    expect(within(log).getAllByText(/🔵 Modelo grande/).length).toBeGreaterThan(0)
+    expect(within(log).getAllByText(/SLM$/).length).toBeGreaterThan(0)
+    expect(within(log).getAllByText(/Modelo grande$/).length).toBeGreaterThan(0)
     expect(within(log).getByText('· escalado')).toBeInTheDocument()
     expect(within(log).getByText('Function calling en SLMs')).toBeInTheDocument()
     expect(within(log).getByText('Investigación terminada')).toBeInTheDocument()

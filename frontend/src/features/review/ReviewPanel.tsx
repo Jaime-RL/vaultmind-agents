@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { Proposal } from '../../api/contract.gen'
 import { plural, shortModel } from '../agents-panel/describeEvent'
-import { AGENT_COLORS, AGENT_LABELS } from '../graph/colors'
+import { AGENT_LABELS } from '../graph/colors'
 import { NoteMarkdown } from './NoteMarkdown'
 import type { ProposalsState } from './useProposals'
 
@@ -103,7 +103,7 @@ function ProposalCard({ proposal, open, busy, existing, onToggle, onResolve }: C
       >
         <span className="proposal__title">{proposal.title}</span>
         <span className="proposal__meta">
-          <span style={{ color: AGENT_COLORS[proposal.agent] }}>{AGENT_LABELS[proposal.agent]}</span> ·{' '}
+          {AGENT_LABELS[proposal.agent]} ·{' '}
           {shortModel(proposal.model)} · {plural(proposal.sources.length, 'fuente')}
         </span>
       </button>

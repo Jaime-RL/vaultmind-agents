@@ -1,5 +1,5 @@
 import type { Agent, Tier, VaultGraph } from '../../api/contract.gen'
-import { AGENT_COLORS, folderColor } from './colors'
+import { folderColor, PROPOSED_COLOR } from './colors'
 
 /** Nota propuesta por los agentes que todavía no está en la bóveda. */
 export interface ProposedNode {
@@ -80,7 +80,7 @@ export function buildGraphData(vault: VaultGraph, proposed: ProposedNode[] = [])
       kind: 'proposed',
       agent: proposal.agent,
       tier: proposal.tier,
-      color: AGENT_COLORS[proposal.agent],
+      color: PROPOSED_COLOR,
       val: 4,
     })
     for (const target of proposal.links) {

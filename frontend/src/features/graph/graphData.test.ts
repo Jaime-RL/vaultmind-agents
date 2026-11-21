@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { VaultGraph } from '../../api/contract.gen'
-import { AGENT_COLORS } from './colors'
+import { PROPOSED_COLOR } from './colors'
 import { buildGraphData, type ProposedNode } from './graphData'
 
 const vault: VaultGraph = {
@@ -45,12 +45,12 @@ describe('buildGraphData', () => {
     expect(chunking!.val).toBeGreaterThan(ideas!.val)
   })
 
-  it('añade las propuestas con el color de su agente y enlazadas a notas existentes', () => {
+  it('añade las propuestas con el color de acento y enlazadas a notas existentes', () => {
     const data = buildGraphData(vault, [proposal()])
     const node = data.nodes.find((n) => n.id === 'p-001')
 
     expect(node).toMatchObject({ kind: 'proposed', agent: 'writer', tier: 'large' })
-    expect(node?.color).toBe(AGENT_COLORS.writer)
+    expect(node?.color).toBe(PROPOSED_COLOR)
     expect(data.links).toContainEqual({ source: 'p-001', target: 'rag/Embeddings', proposed: true })
   })
 

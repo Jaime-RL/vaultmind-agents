@@ -137,6 +137,10 @@ body {
   border: 2px solid;
 }
 
+.legend__dot--note {
+  background: #6f7f99;
+}
+
 /* ---------- Componentes comunes ---------- */
 
 .status {
@@ -225,7 +229,20 @@ body {
   display: flex;
   flex: 1 1 360px;
   gap: 0.5rem;
+  min-width: 0;
   max-width: 640px;
+}
+
+/* En móvil el formulario ocupa su propia fila completa (el botón no se sale). */
+@media (max-width: 599px) {
+  .research-form {
+    flex-basis: 100%;
+    order: 3;
+  }
+
+  .topbar__tagline {
+    display: none;
+  }
 }
 
 .research-form__input {
@@ -335,6 +352,7 @@ body {
 .agent-chip {
   flex: none;
   min-width: 5.5rem;
+  color: var(--text);
   font-weight: 600;
 }
 
@@ -351,7 +369,7 @@ body {
 }
 
 .event--proposed {
-  background: rgb(242 204 96 / 0.07);
+  background: rgb(213 81 129 / 0.1);
 }
 
 .event--finished {
@@ -373,12 +391,8 @@ body {
   font-weight: 600;
 }
 
-.tier-badge--slm {
-  color: #3fb950;
-}
-
-.tier-badge--large {
-  color: #58a6ff;
+.tier-badge {
+  color: var(--text);
 }
 
 .escalated {
@@ -521,14 +535,16 @@ code {
   font-weight: 600;
 }
 
+/* Enlace a una nota que ya existe (fondo) frente a una que aún no existe (borde
+   discontinuo): se distinguen por la forma, no solo por el color. */
 .wikilink--known {
-  background: rgb(88 166 255 / 0.15);
-  color: #79c0ff;
+  background: rgb(56 139 253 / 0.18);
+  color: var(--text);
 }
 
 .wikilink--new {
-  background: rgb(242 204 96 / 0.12);
-  color: #f2cc60;
+  border: 1px dashed var(--muted);
+  color: var(--muted);
 }
 
 .proposal__sources h3 {
@@ -547,4 +563,181 @@ code {
   display: flex;
   gap: 0.5rem;
   margin-top: 0.9rem;
+}
+
+/* ---------- Panel del router ---------- */
+
+.router-panel {
+  padding: 0.75rem 1rem 1rem;
+}
+
+.segmented {
+  display: inline-flex;
+  margin-bottom: 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.segmented button {
+  padding: 0.35rem 0.8rem;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.segmented button[aria-pressed='true'] {
+  background: var(--surface-2);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.segmented button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.kpi--hero {
+  grid-column: 1 / -1;
+}
+
+.kpi__label,
+.kpi__hint {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.kpi__value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.kpi--hero .kpi__value {
+  font-size: 2.2rem;
+}
+
+.cost-bars {
+  margin: 1rem 0;
+}
+
+.cost-bars figcaption {
+  margin-bottom: 0.4rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.cost-bars__row {
+  display: grid;
+  grid-template-columns: 8.5rem minmax(0, 1fr) 4.5rem;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+  font-size: 0.82rem;
+}
+
+.cost-bars__track {
+  height: 0.75rem;
+}
+
+.cost-bars__bar {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  border-radius: 0 4px 4px 0;
+  background: #5c6680;
+}
+
+.cost-bars__bar--emphasis {
+  background: #388bfd;
+}
+
+.cost-bars__value {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.metrics-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.metrics-table caption {
+  margin-bottom: 0.4rem;
+  color: var(--muted);
+  font-weight: 600;
+  text-align: left;
+}
+
+.metrics-table th,
+.metrics-table td {
+  padding: 0.4rem 0.35rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.metrics-table th {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.metrics-table .num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.metrics-table__model {
+  display: block;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.metrics-table tr.is-escalated {
+  background: rgb(210 153 34 / 0.08);
+}
+
+/* Nombres de modelo y de tarea sin cortar: si no caben, la tabla se desplaza. */
+.metrics-table td:nth-child(2),
+.metrics-table td:nth-child(3) {
+  white-space: nowrap;
+}
+
+.metrics-table .escalated {
+  display: block;
+}
+
+.tier-dot {
+  display: inline-block;
+  width: 0.6rem;
+  height: 0.6rem;
+  margin-right: 0.2rem;
+  border-radius: 50%;
+  vertical-align: baseline;
 }

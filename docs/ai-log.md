@@ -65,3 +65,9 @@ Materia prima para la sección «Cómo se construyó con IA» del README. Apunta
 - **Qué funcionó:** pedir al agente que comprobara las dependencias entre paquetes antes de instalar: detectó que TypeScript 7 (la última) no es compatible con `typescript-eslint`, y se fijó `~6.0.3`. Generar los tipos TypeScript desde los esquemas JSON (`npm run gen:types`) en lugar de escribirlos a mano.
 - **Qué costó o falló:** el entorno del agente no podía descargar imágenes de Docker, así que el Dockerfile se valida en la CI (build + arranque de la imagen + `/api/health`) y no en local.
 - **Qué cambiaría:** decidir desde el día 1 que producción es un solo servicio (FastAPI sirve el frontend compilado): evita CORS y una URL distinta por entorno.
+
+### 2026-11-21 · Persona B · Interfaz de HU1-HU4
+- **Prompt:** tarea «avanza según el roadmap hasta estar a la par con el backend», con el modo demo de la Persona A (`DEMO_MODE=true`) como backend de desarrollo y `fixtures/run_example.jsonl` para los tests.
+- **Qué funcionó:** poner toda la lógica de la investigación en directo en un reductor puro (`runReducer`): el test reproduce el fixture evento a evento y comprueba nodos y líneas sin red ni temporizadores. Probar cada historia con Playwright contra el backend real en modo demo destapó fallos que los tests no veían (cámara pegada a la última nota, fuentes duplicadas, botón cortado en móvil).
+- **Qué costó o falló:** el SSE no pintaba nada en la primera idea porque el backend envía `event: <tipo>` y `EventSource.onmessage` solo recibe mensajes sin tipo: hay que escuchar cada tipo con `addEventListener`. Los colores «uno por agente» del roadmap no superan el validador de daltonismo junto al verde/azul del modelo (ninguna combinación de 4 tonos lo consigue): se sustituyeron por un único acento para las notas propuestas y el nombre del agente en texto.
+- **Qué cambiaría:** validar la paleta con el script antes de escribir el primer componente, no después.

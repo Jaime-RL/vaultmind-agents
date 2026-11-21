@@ -1,0 +1,178 @@
+"""Persistencia en SQLite: investigaciones, eventos, propuestas y métricas.
+
+Usamos el módulo `sqlite3` de la librería estándar, sin ORM: son cuatro tablas
+y consultas sencillas. Las operaciones tardan microsegundos, así que se llaman
+directamente desde el código asíncrono sin pasar por un hilo aparte.
+
+Guardar los eventos permite reproducir una investigación ya terminada (por
+ejemplo, si el navegador se conecta tarde o recarga la página).
+"""
+
+import json
+import sqlite3
+from dataclasses import dataclass
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Literal
+
+from app.contracts import MetricsTotals, Proposal, TaskMetric
+from router import summarize
+
+RunStatus = Literal["running", "finished", "error"]
+
+SCHEMA = """
+CREATE TABLE IF NOT EXISTS runs (
+    id          TEXT PRIMARY KEY,
+    topic       TEXT NOT NULL,
+    status      TEXT NOT NULL,
+    created_at  TEXT NOT NULL,
+    finished_at TEXT
+);
+CREATE TABLE IF NOT EXISTS events (
+    seq     INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_id  TEXT NOT NULL REFERENCES runs(id),
+    data    TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS events_by_run ON events(run_id, seq);
+CREATE TABLE IF NOT EXISTS proposals (
+    id         TEXT PRIMARY KEY,
+    run_id     TEXT NOT NULL,
+    status     TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    data       TEXT NOT NULL,
+    file_path  TEXT
+);
+CREATE TABLE IF NOT EXISTS task_metrics (
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_id            TEXT NOT NULL,
+    data              TEXT NOT NULL,
+    baseline_cost_usd REAL NOT NULL
+);
+"""
+
+
+@dataclass(frozen=True)
+class RunRecord:
+    id: str
+    topic: str
+    status: RunStatus
+    created_at: str
+    finished_at: str | None
+
+
+class Store:
+    def __init__(self, path: Path | str = ":memory:"):
+        if str(path) != ":memory:":
+            Path(path).parent.mkdir(parents=True, exist_ok=True)
+        # check_same_thread=False: FastAPI puede ejecutar código de arranque en otro hilo.
+        self._db = sqlite3.connect(str(path), check_same_thread=False)
+        self._db.row_factory = sqlite3.Row
+        self._db.executescript(SCHEMA)
+
+    def close(self) -> None:
+        self._db.close()
+
+    # --- Investigaciones -------------------------------------------------------
+
+    def create_run(self, run_id: str, topic: str) -> None:
+        with self._db:
+            self._db.execute(
+                "INSERT INTO runs (id, topic, status, created_at) VALUES (?, ?, 'running', ?)",
+                (run_id, topic, now()),
+            )
+
+    def finish_run(self, run_id: str, status: RunStatus) -> None:
+        with self._db:
+            self._db.execute(
+                "UPDATE runs SET status = ?, finished_at = ? WHERE id = ?",
+                (status, now(), run_id),
+            )
+
+    def get_run(self, run_id: str) -> RunRecord | None:
+        row = self._db.execute("SELECT * FROM runs WHERE id = ?", (run_id,)).fetchone()
+        return RunRecord(**dict(row)) if row else None
+
+    # --- Eventos ---------------------------------------------------------------
+
+    def add_event(self, run_id: str, event_json: str) -> None:
+        with self._db:
+            self._db.execute(
+                "INSERT INTO events (run_id, data) VALUES (?, ?)", (run_id, event_json)
+            )
+
+    def list_events(self, run_id: str) -> list[dict]:
+        rows = self._db.execute(
+            "SELECT data FROM events WHERE run_id = ? ORDER BY seq", (run_id,)
+        ).fetchall()
+        return [json.loads(row["data"]) for row in rows]
+
+    # --- Propuestas ------------------------------------------------------------
+
+    def save_proposal(self, proposal: Proposal) -> None:
+        with self._db:
+            self._db.execute(
+                "INSERT OR REPLACE INTO proposals (id, run_id, status, created_at, data) "
+                "VALUES (?, ?, ?, ?, ?)",
+                (
+                    proposal.id,
+                    proposal.run_id,
+                    proposal.status,
+                    proposal.created_at.isoformat(),
+                    proposal.model_dump_json(),
+                ),
+            )
+
+    def get_proposal(self, proposal_id: str) -> Proposal | None:
+        row = self._db.execute(
+            "SELECT data, status FROM proposals WHERE id = ?", (proposal_id,)
+        ).fetchone()
+        return self._to_proposal(row) if row else None
+
+    def list_proposals(self, status: str | None = None) -> list[Proposal]:
+        query = "SELECT data, status FROM proposals"
+        params: tuple = ()
+        if status is not None:
+            query += " WHERE status = ?"
+            params = (status,)
+        rows = self._db.execute(query + " ORDER BY created_at DESC, id", params).fetchall()
+        return [self._to_proposal(row) for row in rows]
+
+    def set_proposal_status(
+        self, proposal_id: str, status: str, file_path: str | None = None
+    ) -> Proposal | None:
+        with self._db:
+            self._db.execute(
+                "UPDATE proposals SET status = ?, file_path = COALESCE(?, file_path) WHERE id = ?",
+                (status, file_path, proposal_id),
+            )
+        return self.get_proposal(proposal_id)
+
+    @staticmethod
+    def _to_proposal(row: sqlite3.Row) -> Proposal:
+        # El estado vive en su propia columna (se actualiza sin reescribir el JSON).
+        return Proposal.model_validate_json(row["data"]).model_copy(
+            update={"status": row["status"]}
+        )
+
+    # --- Métricas --------------------------------------------------------------
+
+    def add_metric(self, metric: TaskMetric, baseline_cost_usd: float) -> None:
+        with self._db:
+            self._db.execute(
+                "INSERT INTO task_metrics (run_id, data, baseline_cost_usd) VALUES (?, ?, ?)",
+                (metric.run_id, metric.model_dump_json(), baseline_cost_usd),
+            )
+
+    def metrics(self, run_id: str | None = None) -> tuple[list[TaskMetric], MetricsTotals]:
+        query = "SELECT data, baseline_cost_usd FROM task_metrics"
+        params: tuple = ()
+        if run_id is not None:
+            query += " WHERE run_id = ?"
+            params = (run_id,)
+        rows = self._db.execute(query + " ORDER BY id", params).fetchall()
+        records = [TaskMetric.model_validate_json(row["data"]) for row in rows]
+        return records, summarize(records, [row["baseline_cost_usd"] for row in rows])
+
+
+def now() -> str:
+    return datetime.now(UTC).isoformat()

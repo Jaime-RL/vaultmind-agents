@@ -197,7 +197,9 @@ r.tool("reviewer", "verify_claims", {"proposal_id": "p-003"}, "5 de 5 afirmacion
 r.route("reviewer", "verify_claims", "slm", SLM_REASON, (1900, 140))
 
 # --- Fin ---------------------------------------------------------------------
-totals = summarize(r.metrics, lambda m: PRICES["large"].cost(m.prompt_tokens, m.completion_tokens))
+totals = summarize(
+    r.metrics, [PRICES["large"].cost(m.prompt_tokens, m.completion_tokens) for m in r.metrics]
+)
 end = r.at(1.0)
 r.events.append(
     RunFinished(

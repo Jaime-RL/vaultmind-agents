@@ -66,6 +66,8 @@ class SmartRoute:
     # Inyectable para que los tests controlen la latencia medida.
     clock: Callable[[], float] = time.perf_counter
     records: list[TaskMetric] = field(default_factory=list)
+    # Se llama con cada métrica y su coste de referencia: así se persisten al momento.
+    on_record: Callable[[TaskMetric, float], None] | None = None
 
     async def complete(
         self,
@@ -115,6 +117,8 @@ class SmartRoute:
             escalated=escalated,
         )
         self.records.append(metric)
+        if self.on_record is not None:
+            self.on_record(metric, self.baseline_cost(metric))
         return RouteOutcome(response=response, metric=metric, reason=reason)
 
     async def _call(
@@ -142,15 +146,19 @@ class SmartRoute:
 
     def totals(self, run_id: str | None = None) -> MetricsTotals:
         records = [r for r in self.records if run_id is None or r.run_id == run_id]
-        return summarize(records, self.baseline_cost)
+        return summarize(records, [self.baseline_cost(r) for r in records])
 
 
-def summarize(
-    records: Sequence[TaskMetric], baseline_cost: Callable[[TaskMetric], float]
-) -> MetricsTotals:
-    """Totales para /api/metrics y para el evento run_finished."""
+def summarize(records: Sequence[TaskMetric], baselines: Sequence[float]) -> MetricsTotals:
+    """Totales para /api/metrics y para el evento run_finished.
+
+    `baselines[i]` es lo que habría costado `records[i]` con el modelo grande.
+    Se pasa ya calculado para poder usarlo también con métricas leídas de la base de datos.
+    """
+    if len(records) != len(baselines):
+        raise ValueError("records y baselines deben tener la misma longitud")
     cost = sum(r.cost_usd for r in records)
-    baseline = sum(baseline_cost(r) for r in records)
+    baseline = sum(baselines)
     slm_tasks = sum(1 for r in records if r.tier == "slm")
     return MetricsTotals(
         tasks=len(records),

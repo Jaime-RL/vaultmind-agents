@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     large_price_output: float = 15.00
 
     vault_path: Path = REPO_ROOT / "demo-vault"
-    database_path: Path = Path("data/vaultmind.db")
+    database_path: Path = REPO_ROOT / "data" / "vaultmind.db"
 
     # Orígenes que pueden llamar a la API desde el navegador (el dev server de Vite por defecto).
     cors_origins: list[str] = ["http://localhost:5173"]

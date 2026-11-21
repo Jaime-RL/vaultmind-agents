@@ -3,7 +3,7 @@
 import pytest
 
 from agents import Gap, explore, research, run_research
-from llm import LLMError
+from llm import LLMError, LLMResponse
 from tests.conftest import PAPER_URL, calls_tool, fake_search_tool, final
 from vault import parse_vault
 
@@ -125,14 +125,23 @@ class StepClock:
         return self.t
 
 
+NOTE_MD = "# LoRA\n\n" + "LoRA ajusta modelos con matrices de bajo rango. " * 5 + "Ver [[SLM]]."
+
+
 async def test_full_run_ends_with_run_finished(make_router, emitter, sink, vault):
-    router, _ = make_router(
+    router, fake = make_router(
         [
-            final({"selected": ["LoRA"]}),
-            calls_tool("search_arxiv", query="LoRA"),
+            final({"selected": ["LoRA"]}),  # Explorador (SLM)
+            calls_tool("search_arxiv", query="LoRA"),  # Investigador (SLM)
             final({"summary": "Resumen", "sources": [{"title": "P", "url": PAPER_URL}]}),
+            LLMResponse(content=NOTE_MD, prompt_tokens=900, completion_tokens=300),  # Redactor
+            final({"claims": 3, "supported": 3, "issues": []}),  # Revisor (SLM)
         ]
     )
+    saved = []
+
+    async def on_proposal(proposal):
+        saved.append(proposal)
 
     result = await run_research(
         topic="SLMs",
@@ -140,16 +149,22 @@ async def test_full_run_ends_with_run_finished(make_router, emitter, sink, vault
         router=router,
         emitter=emitter,
         search_tool=fake_search_tool(),
+        on_proposal=on_proposal,
         clock=StepClock(),
     )
 
+    assert fake.remaining == 0
     assert sink.types()[-1] == "run_finished"
     assert "error" not in sink.types()
+    assert {"explorer", "researcher", "writer", "reviewer"} <= {e.agent for e in sink.events}
     assert [f.gap.name for f in result.findings] == ["LoRA"]
+    assert saved == result.proposals
+    assert result.proposals[0].links == ["SLM"]
     stats = result.stats
+    assert stats.notes_proposed == 1
     assert stats.duration_s == 30.0
     assert stats.cost_usd > 0
-    assert stats.baseline_cost_usd > stats.cost_usd  # todo fue al SLM: hay ahorro
+    assert stats.baseline_cost_usd > stats.cost_usd  # 3 de 4 tareas en el SLM: hay ahorro
     assert all(e.run_id == "run-test" for e in sink.events)
 
 

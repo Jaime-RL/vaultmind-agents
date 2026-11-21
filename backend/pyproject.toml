@@ -40,3 +40,7 @@ target-version = "py312"
 [tool.ruff.lint]
 # E/F: errores básicos · I: orden de imports · B: bugs probables · UP: sintaxis moderna · SIM: simplificaciones
 select = ["E", "F", "I", "B", "UP", "SIM"]
+
+[tool.ruff.lint.per-file-ignores]
+# Los prompts son texto para el modelo: partir líneas cambiaría lo que recibe.
+"agents/prompts.py" = ["E501"]

@@ -35,3 +35,15 @@ Materia prima para la sección «Cómo se construyó con IA» del README. Apunta
 - **Qué funcionó:** separar lo determinista de lo que necesita criterio. Detectar lagunas lo hace el parser (gratis y exacto); el LLM solo elige cuáles investigar, y su elección se filtra contra la lista real para que no pueda inventarse lagunas. Igual con las fuentes: el Investigador solo conserva URLs que arXiv devolvió de verdad.
 - **Qué costó o falló:** el helper de tests intentaba añadir un atributo a `Tool`, que es inmutable (`frozen`). Se resolvió guardando el registro en la función manejadora.
 - **Qué cambiaría:** los prompts están pensados para modelos pequeños (un solo formato de salida con ejemplo), pero falta probarlos con modelos reales en las evals.
+
+### 2026-11-21 · Persona A · Redactor, Revisor, SQLite y SSE (plan del miércoles)
+- **Prompt:** «HU2: agentes Redactor y Revisor; endpoint SSE real; persistencia de trazas en SQLite».
+- **Qué funcionó:** no confiar al LLM lo que se puede garantizar con código. El Redactor solo redacta: los enlaces del grafo se calculan resolviendo sus `[[wikilinks]]` contra la bóveda real y la sección de fuentes la añade el código con las URLs verificadas. Para el SSE, guardar cada evento en SQLite y en memoria permite que un navegador que se conecta tarde (o recarga) reciba primero lo pasado y luego lo nuevo.
+- **Qué costó o falló:** un test esperaba 4 métricas por investigación y había 5: el Investigador hace dos llamadas al LLM (buscar y responder). El test estaba mal, no el código; se dejó comentado por qué son 5. Ruff avisó de una lambda definida dentro de un bucle (B023), un error clásico de cierres en Python.
+- **Qué cambiaría:** las investigaciones terminadas se quedan en memoria hasta reiniciar; con mucho uso habría que liberarlas.
+
+### 2026-11-21 · Persona A · Propuestas, métricas, evals y prueba de punta a punta (jueves a sábado)
+- **Prompt:** «HU3: /api/proposals, aprobar o rechazar, escritura segura en _copilot/», «HU4: /api/metrics», «Evals: 15-20 casos y % de acierto».
+- **Qué funcionó:** tratar el título que da el LLM como entrada no confiable (limpieza de caracteres, nada de `..`, ni enlaces simbólicos fuera de la bóveda) y crear el fichero en modo exclusivo para no sobrescribir nunca. Una prueba de punta a punta con el cableado de producción y la red simulada (`httpx.MockTransport`) verificó de una vez el cliente OpenAI real, el tool calling, el SSE, SQLite, la aprobación y las métricas.
+- **Qué costó o falló:** los tests del cliente OpenAI usaban objetos imitados; se comprobó aparte que `to_response` funciona con los objetos reales del SDK antes de fiarse.
+- **Qué cambiaría:** las evals están listas pero no se han ejecutado: falta elegir los modelos y poner una clave. Sus resultados son los que deberían fijar la política del router, en lugar de las reglas escritas a mano.

@@ -1,13 +1,18 @@
 import json
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sse_starlette.sse import EventSourceResponse
 
 from api.deps import get_services
 from app.contracts import ResearchRequest, ResearchResponse
 from app.services import Services
-from runs import LLMNotConfiguredError, RunNotFoundError, TooManyRunsError
+from runs import (
+    DailyQuotaExceededError,
+    LLMNotConfiguredError,
+    RunNotFoundError,
+    TooManyRunsError,
+)
 from vault import VaultNotFoundError
 
 router = APIRouter(tags=["research"])
@@ -15,12 +20,30 @@ router = APIRouter(tags=["research"])
 ServicesDep = Annotated[Services, Depends(get_services)]
 
 
+def client_ip(request: Request) -> str | None:
+    """IP real de quien hace la petición, para el cupo por IP.
+
+    Detrás del proxy de Render (o de cualquier plataforma), la IP de la conexión es la del
+    proxy, y la del cliente llega en X-Forwarded-For. Se toma la ÚLTIMA entrada: es la que
+    añade el proxy de la plataforma. Las anteriores las puede escribir el propio cliente
+    para hacerse pasar por otra IP y saltarse el cupo.
+    """
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        last = forwarded.split(",")[-1].strip()
+        if last:
+            return last
+    return request.client.host if request.client else None
+
+
 @router.post("/research", response_model=ResearchResponse)
-async def start_research(request: ResearchRequest, services: ServicesDep) -> ResearchResponse:
+async def start_research(
+    body: ResearchRequest, request: Request, services: ServicesDep
+) -> ResearchResponse:
     """Lanza una investigación en segundo plano y devuelve su run_id al momento."""
     try:
-        run_id = await services.runs.start(request.topic.strip())
-    except TooManyRunsError as exc:
+        run_id = await services.runs.start(body.topic.strip(), client_ip=client_ip(request))
+    except (TooManyRunsError, DailyQuotaExceededError) as exc:
         raise HTTPException(status_code=429, detail=str(exc)) from exc
     except LLMNotConfiguredError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc

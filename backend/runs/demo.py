@@ -55,10 +55,12 @@ class DemoRun:
         )
 
 
-async def play_demo(demo: DemoRun, run_id: str, requested_topic: str, sink: RunSink) -> None:
+async def play_demo(
+    demo: DemoRun, run_id: str, requested_topic: str, sink: RunSink, reason: str | None = None
+) -> None:
     """Reproduce la demo. Como una investigación real, termina siempre con run_finished o error."""
     try:
-        await _play(demo, run_id, requested_topic, sink)
+        await _play(demo, run_id, requested_topic, sink, reason)
     except Exception as exc:  # noqa: BLE001 — el flujo SSE debe cerrarse pase lo que pase
         await sink.emit(
             RunError(
@@ -70,7 +72,9 @@ async def play_demo(demo: DemoRun, run_id: str, requested_topic: str, sink: RunS
         )
 
 
-async def _play(demo: DemoRun, run_id: str, requested_topic: str, sink: RunSink) -> None:
+async def _play(
+    demo: DemoRun, run_id: str, requested_topic: str, sink: RunSink, reason: str | None
+) -> None:
     store: Store = sink.store
     # Ids de propuesta nuevos: aprobar en una reproducción no afecta a las demás.
     new_ids = {p.id: f"p-{uuid.uuid4().hex[:8]}" for p in demo.proposals}
@@ -83,10 +87,7 @@ async def _play(demo: DemoRun, run_id: str, requested_topic: str, sink: RunSink)
             run_id=run_id,
             ts=datetime.now(UTC),
             agent="system",
-            text=(
-                f"Modo demostración: pediste «{requested_topic}», pero se reproduce una "
-                f"investigación grabada sobre «{demo.topic}». No se llama a ningún modelo."
-            ),
+            text=demo_notice(requested_topic, demo.topic, reason),
         )
     )
 
@@ -113,3 +114,16 @@ async def _play(demo: DemoRun, run_id: str, requested_topic: str, sink: RunSink)
             store.add_metric(metric.model_copy(update={"run_id": run_id}), baseline)
 
         await sink.emit(EVENT_ADAPTER.validate_python(data))
+
+
+def demo_notice(requested: str, recorded: str, reason: str | None = None) -> str:
+    """Aviso inicial: deja claro que es una grabación, sobre qué tema y, si procede, por qué."""
+    tail = (
+        f"se reproduce una investigación grabada sobre «{recorded}». No se llama a ningún modelo."
+    )
+    if reason is not None and "cupo" in reason:
+        return f"Se ha agotado {reason}, así que en lugar de investigar «{requested}» {tail}"
+    prefix = f"Modo demostración ({reason})" if reason else "Modo demostración"
+    if requested.strip().lower() == recorded.strip().lower():
+        return f"{prefix}: {tail}"
+    return f"{prefix}: pediste «{requested}», pero {tail}"

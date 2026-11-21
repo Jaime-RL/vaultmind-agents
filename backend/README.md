@@ -26,6 +26,9 @@ DEMO_MODE=true DEMO_SPEED=2 uv run uvicorn app.main:app
 
 - `MAX_CONCURRENT_RUNS` (3 por defecto): investigaciones a la vez; las siguientes reciben **429**.
 - `FINISHED_RUN_RETENTION_S` (300): segundos que una investigación terminada sigue en memoria; después se reproduce desde SQLite.
+- `MAX_RUNS_PER_DAY` (10) y `MAX_RUNS_PER_IP_PER_DAY` (3): cupo de investigaciones **reales** por día UTC. La IP se toma de la última entrada de `X-Forwarded-For` (la que añade el proxy de la plataforma; las anteriores las puede falsificar el cliente).
+- `DEMO_FALLBACK` (true): sin clave o con el cupo agotado, se reproduce la demo en lugar de responder con error. Las demos no consumen cupo.
+- `LLM_REASONING_EFFORT`: `low` para los modelos gpt-oss de Groq, para gastar menos tokens del cupo gratuito.
 
 ## Endpoints
 

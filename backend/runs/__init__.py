@@ -1,3 +1,15 @@
-from runs.manager import LLMNotConfiguredError, RunManager, RunNotFoundError, TooManyRunsError
+from runs.manager import (
+    DailyQuotaExceededError,
+    LLMNotConfiguredError,
+    RunManager,
+    RunNotFoundError,
+    TooManyRunsError,
+)
 
-__all__ = ["LLMNotConfiguredError", "RunManager", "RunNotFoundError", "TooManyRunsError"]
+__all__ = [
+    "DailyQuotaExceededError",
+    "LLMNotConfiguredError",
+    "RunManager",
+    "RunNotFoundError",
+    "TooManyRunsError",
+]

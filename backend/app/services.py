@@ -41,13 +41,23 @@ def build_services(
             vault_path=settings.vault_path,
             router_factory=router_factory(settings, llm_http),
             search_tool=ArxivClient(http=arxiv_http, min_interval=arxiv_min_interval).as_tool(),
-            demo=(
-                DemoRun.load(DEMO_FILE, speed=settings.demo_speed) if settings.demo_mode else None
-            ),
+            demo=load_demo(settings),
+            force_demo=settings.demo_mode,
             max_concurrent=settings.max_concurrent_runs,
             retention_s=settings.finished_run_retention_s,
+            max_runs_per_day=settings.max_runs_per_day or None,
+            max_runs_per_ip_per_day=settings.max_runs_per_ip_per_day or None,
         ),
     )
+
+
+def load_demo(settings: Settings) -> DemoRun | None:
+    """La grabación de la demo: obligatoria con DEMO_MODE=true, opcional como respaldo."""
+    if settings.demo_mode:
+        return DemoRun.load(DEMO_FILE, speed=settings.demo_speed)  # falla claro si falta
+    if settings.demo_fallback and DEMO_FILE.is_file():
+        return DemoRun.load(DEMO_FILE, speed=settings.demo_speed)
+    return None
 
 
 def router_factory(settings: Settings, http_client: httpx.AsyncClient | None = None):
@@ -56,7 +66,10 @@ def router_factory(settings: Settings, http_client: httpx.AsyncClient | None = N
     if not (api_key and settings.slm_model and settings.large_model):
         return None
     client = OpenAICompatClient(
-        base_url=settings.llm_base_url, api_key=api_key, http_client=http_client
+        base_url=settings.llm_base_url,
+        api_key=api_key,
+        http_client=http_client,
+        reasoning_effort=settings.llm_reasoning_effort or None,
     )
 
     def factory() -> SmartRoute:

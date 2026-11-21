@@ -19,6 +19,7 @@ from app.contracts import MetricsTotals, Proposal, TaskMetric
 from router import summarize
 
 RunStatus = Literal["running", "finished", "error"]
+RunMode = Literal["real", "demo"]
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS runs (
@@ -58,6 +59,8 @@ class RunRecord:
     status: RunStatus
     created_at: str
     finished_at: str | None
+    client_ip: str | None = None
+    mode: RunMode = "real"
 
 
 class Store:
@@ -68,18 +71,45 @@ class Store:
         self._db = sqlite3.connect(str(path), check_same_thread=False)
         self._db.row_factory = sqlite3.Row
         self._db.executescript(SCHEMA)
+        self._migrate()
+
+    def _migrate(self) -> None:
+        """Añade columnas nuevas a bases de datos creadas con una versión anterior.
+
+        CREATE TABLE IF NOT EXISTS no modifica tablas que ya existen, así que las
+        columnas añadidas después se crean aquí si faltan.
+        """
+        columns = {row["name"] for row in self._db.execute("PRAGMA table_info(runs)")}
+        with self._db:
+            if "client_ip" not in columns:
+                self._db.execute("ALTER TABLE runs ADD COLUMN client_ip TEXT")
+            if "mode" not in columns:
+                self._db.execute("ALTER TABLE runs ADD COLUMN mode TEXT NOT NULL DEFAULT 'real'")
 
     def close(self) -> None:
         self._db.close()
 
     # --- Investigaciones -------------------------------------------------------
 
-    def create_run(self, run_id: str, topic: str) -> None:
+    def create_run(
+        self, run_id: str, topic: str, client_ip: str | None = None, mode: RunMode = "real"
+    ) -> None:
         with self._db:
             self._db.execute(
-                "INSERT INTO runs (id, topic, status, created_at) VALUES (?, ?, 'running', ?)",
-                (run_id, topic, now()),
+                "INSERT INTO runs (id, topic, status, created_at, client_ip, mode) "
+                "VALUES (?, ?, 'running', ?, ?, ?)",
+                (run_id, topic, now(), client_ip, mode),
             )
+
+    def count_runs_today(self, mode: RunMode = "real", client_ip: str | None = None) -> int:
+        """Investigaciones de hoy (día UTC), en total o de una IP. Para el cupo diario."""
+        today = datetime.now(UTC).date().isoformat()
+        query = "SELECT COUNT(*) FROM runs WHERE mode = ? AND substr(created_at, 1, 10) = ?"
+        params: tuple = (mode, today)
+        if client_ip is not None:
+            query += " AND client_ip = ?"
+            params += (client_ip,)
+        return self._db.execute(query, params).fetchone()[0]
 
     def finish_run(self, run_id: str, status: RunStatus) -> None:
         with self._db:
@@ -121,6 +151,19 @@ class Store:
                     proposal.model_dump_json(),
                 ),
             )
+
+    def delete_pending_demo_proposals(self) -> int:
+        """Borra las propuestas pendientes de investigaciones de demo.
+
+        Cada demo propone las mismas 3 notas: sin esto se acumularían duplicadas en
+        la lista de revisión. Las aprobadas o rechazadas no se tocan.
+        """
+        with self._db:
+            cursor = self._db.execute(
+                "DELETE FROM proposals WHERE status = 'pending' AND run_id IN "
+                "(SELECT id FROM runs WHERE mode = 'demo')"
+            )
+        return cursor.rowcount
 
     def get_proposal(self, proposal_id: str) -> Proposal | None:
         row = self._db.execute(

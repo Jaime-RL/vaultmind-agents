@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     # Misma familia en los dos niveles (Qwen2.5 7B frente a 72B): la comparación mide el efecto
     # del tamaño, no el de cambiar de modelo. Ambos admiten tool calling en OpenRouter.
     slm_model: str = "qwen/qwen-2.5-7b-instruct"
+    # Solo para modelos de razonamiento (p. ej. gpt-oss en Groq): "low" gasta menos tokens
+    # del cupo gratuito. Vacío = no se envía (los modelos que no lo admiten lo rechazarían).
+    llm_reasoning_effort: str | None = None
     large_model: str = "qwen/qwen-2.5-72b-instruct"
 
     # Precios en USD por millón de tokens (entrada / salida), publicados en OpenRouter
@@ -47,6 +50,12 @@ class Settings(BaseSettings):
     # y segundos que una investigación terminada sigue en memoria (después se lee de SQLite).
     max_concurrent_runs: int = 3
     finished_run_retention_s: float = 300.0
+    # Cupo de investigaciones REALES por día (UTC): en total y por IP. Al agotarse, si existe
+    # la grabación, se sirve el modo demo en su lugar. 0 = sin límite.
+    max_runs_per_day: int = 10
+    max_runs_per_ip_per_day: int = 3
+    # Usar la demo como respaldo (sin clave configurada o cupo agotado) en lugar de dar error.
+    demo_fallback: bool = True
 
     # Carpeta con el frontend compilado (dist/ de Vite). Si existe, FastAPI la sirve en "/"
     # junto a la API: en producción todo es un solo servicio, sin CORS. La define el Dockerfile.

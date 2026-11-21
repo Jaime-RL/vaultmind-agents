@@ -40,6 +40,7 @@ def manager_for(store: Store, vault: Path, demo: DemoRun) -> RunManager:
         router_factory=None,  # sin LLM: la demo no lo necesita
         search_tool=fake_search_tool(),
         demo=demo,
+        force_demo=True,
     )
 
 
@@ -170,8 +171,21 @@ def test_demo_mode_works_end_to_end_without_api_key(vault_copy, tmp_path):
         assert client.get(f"/api/metrics?run_id={run_id}").json()["totals"]["tasks"] == 10
 
 
-def test_without_demo_mode_and_key_research_is_unavailable(tmp_path):
+def test_without_key_falls_back_to_demo(tmp_path):
     settings = Settings(_env_file=None, llm_api_key="", database_path=tmp_path / "x.db")
+
+    with TestClient(create_app(settings, services=build_services(settings))) as client:
+        run_id = client.post("/api/research", json={"topic": "SLMs"}).json()["run_id"]
+        with client.stream("GET", f"/api/research/{run_id}/events") as stream:
+            first = next(line for line in stream.iter_lines() if line.startswith("data:"))
+
+    assert "sin modelo configurado" in first
+
+
+def test_without_key_and_without_fallback_research_is_unavailable(tmp_path):
+    settings = Settings(
+        _env_file=None, llm_api_key="", demo_fallback=False, database_path=tmp_path / "x.db"
+    )
 
     with TestClient(create_app(settings, services=build_services(settings))) as client:
         assert client.post("/api/research", json={"topic": "SLMs"}).status_code == 503

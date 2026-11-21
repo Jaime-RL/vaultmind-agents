@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Respuesta de ejemplo con el formato de la API de arXiv. Títulos, autores e ids son ficticios. -->
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title type="html">ArXiv Query: search_query=all:function calling small language models</title>
+  <entry>
+    <id>http://arxiv.org/abs/0000.00001v1</id>
+    <published>2025-03-14T10:00:00Z</published>
+    <title>An Example Study of
+      Function Calling in Small Language Models</title>
+    <summary>  We evaluate how small language models follow tool schemas.
+      Most failures come from malformed arguments rather than wrong tool choice.
+    </summary>
+    <author><name>Ada Example</name></author>
+    <author><name>Alan Sample</name></author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/0000.00002v2</id>
+    <published>2024-11-02T08:30:00Z</published>
+    <title>Routing Queries Between Cheap and Expensive Models (Example)</title>
+    <summary>A fictitious paper about cascades that escalate to a larger model on failure.</summary>
+    <author><name>Grace Placeholder</name></author>
+  </entry>
+</feed>

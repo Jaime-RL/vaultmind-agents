@@ -1,18 +1,27 @@
-"""Genera fixtures/run_example.jsonl: una investigación de ejemplo, evento a evento.
+"""Genera la investigación de ejemplo que usan el frontend y el modo demo.
 
-La Persona B la reproduce con un servidor SSE falso para construir la interfaz
-sin esperar al backend real. Se genera con los modelos del contrato, así que
-cada línea es válida por construcción (y tests/test_run_fixture.py lo comprueba).
+- fixtures/run_example.jsonl: los eventos, uno por línea. La Persona B los reproduce
+  con un servidor SSE falso para construir la interfaz sin el backend.
+- fixtures/demo_run.json: eventos + notas propuestas + métricas. Lo reproduce el
+  backend en modo demo (DEMO_MODE=true), la versión que se publica en la URL pública.
+
+Se genera con los modelos del contrato y con las mismas funciones que el Redactor
+real, así que es válido por construcción (tests/test_run_fixture.py y
+tests/test_demo.py lo comprueban).
 
 Uso (desde backend/):  PYTHONPATH=. uv run python scripts/make_run_fixture.py
 """
 
+import json
 from datetime import UTC, datetime, timedelta
 
+from agents import Finding, Gap, Source
+from agents.writer import mentioned_in_section, resolve_links, sources_section
 from app.config import REPO_ROOT, Settings
 from app.contracts import (
     AgentThought,
     NodeProposed,
+    Proposal,
     RouteDecision,
     RunFinished,
     RunStats,
@@ -21,16 +30,106 @@ from app.contracts import (
     ToolResultEvent,
 )
 from router import ModelPrice, summarize
+from vault import parse_vault
+from vault.parser import LinkResolver
 
 RUN_ID = "run-demo-001"
 START = datetime(2026, 11, 23, 10, 0, 0, tzinfo=UTC)
-SLM, LARGE = "demo/slm", "demo/large"
+SLM, LARGE = "qwen/qwen-2.5-7b-instruct", "demo/large"
 
 settings = Settings(_env_file=None)
 PRICES = {
     "slm": ModelPrice(settings.slm_price_input, settings.slm_price_output),
     "large": ModelPrice(settings.large_price_input, settings.large_price_output),
 }
+
+DEMO_TOPIC = "Function calling y routing de modelos para un chatbot de clima con SLMs"
+
+# Notas que «propone» la demo. Fuentes reales, comprobadas en arxiv.org.
+DEMO_NOTES = {
+    "p-001": (
+        "Function calling en SLMs",
+        Source(
+            "Gorilla: Large Language Model Connected with Massive APIs",
+            "https://arxiv.org/abs/2305.15334",
+        ),
+        """# Function calling en SLMs
+
+El *function calling* (o [[Tool calling]]) permite que un modelo pida ejecutar una función
+externa devolviendo su nombre y sus argumentos en un formato estructurado. En el TFG es la pieza
+que conecta el chatbot con datos climáticos reales.
+
+En un [[SLM]] el reto principal es la fiabilidad: elegir la herramienta adecuada y generar los
+argumentos con el formato exacto. Una línea de trabajo es ajustar el modelo específicamente para
+escribir llamadas a APIs y darle acceso a la documentación de esas APIs, como propone Gorilla;
+según sus autores, así las llamadas son más precisas y el modelo alucina menos.
+
+Implicaciones para el TFG:
+- Validar siempre los argumentos antes de ejecutar una herramienta.
+- Medir por separado la elección de herramienta y la calidad de los argumentos
+  (pendiente desde el [[Diario de trabajo]]).
+""",
+    ),
+    "p-002": (
+        "Routing de modelos",
+        Source(
+            "FrugalGPT: How to Use Large Language Models While Reducing Cost and Improving "
+            "Performance",
+            "https://arxiv.org/abs/2305.05176",
+        ),
+        """# Routing de modelos
+
+Un router de modelos decide qué modelo atiende cada petición: uno barato cuando basta y un
+[[LLM]] grande para los casos difíciles. FrugalGPT propone una cascada que aprende qué modelos
+consultar para cada entrada, con el objetivo de reducir el coste de usar APIs de LLMs
+manteniendo o mejorando la precisión.
+
+En un sistema de [[Sistemas multiagente]] cada agente hace tareas de dificultad distinta, así que
+el router puede asignar un modelo diferente a cada una. Estudiarlo es uno de los
+[[Objetivos del TFG]].
+
+Unas reglas fijas por tipo de tarea son el punto de partida más sencillo; con las trazas de uso se
+podría aprender después una política mejor.
+""",
+    ),
+    "p-003": (
+        "LoRA",
+        Source(
+            "LoRA: Low-Rank Adaptation of Large Language Models",
+            "https://arxiv.org/abs/2106.09685",
+        ),
+        """# LoRA
+
+LoRA (*Low-Rank Adaptation*) es una técnica de [[Fine-tuning]] eficiente: congela los pesos del
+modelo preentrenado y entrena solo unas matrices de bajo rango que se añaden a algunas capas. Así
+reduce mucho el número de parámetros entrenables y la memoria necesaria para el ajuste.
+
+En el TFG permitiría especializar un [[SLM]] en preguntas sobre clima sin el coste de reentrenar
+el modelo entero.
+""",
+    ),
+}
+
+demo_vault = parse_vault(REPO_ROOT / "demo-vault")
+resolver = LinkResolver(list(demo_vault.notes))
+gaps_in_vault = demo_vault.unresolved_links()
+PROPOSALS: dict[str, Proposal] = {}
+for proposal_id, (title, source, body) in DEMO_NOTES.items():
+    finding = Finding(Gap(title, gaps_in_vault.get(title, [])), summary="", sources=[source])
+    # Mismo ensamblado que el Redactor real: cuerpo + fuentes + «Mencionada en».
+    markdown = body + sources_section(finding) + mentioned_in_section(finding)
+    PROPOSALS[proposal_id] = Proposal(
+        id=proposal_id,
+        run_id=RUN_ID,
+        title=title,
+        markdown=markdown,
+        sources=[{"title": source.title, "url": source.url}],
+        links=resolve_links(markdown, resolver),
+        agent="writer",
+        model=LARGE,
+        status="pending",
+        created_at=START,
+    )
 
 
 class Recorder:
@@ -86,10 +185,15 @@ class Recorder:
             )
         )
 
-    def propose(self, proposal_id, title, links, after=1.0):
+    def propose(self, proposal_id, after=1.0):
+        proposal = PROPOSALS[proposal_id]
         self.events.append(
             NodeProposed(
-                **self.at(after), agent="writer", proposal_id=proposal_id, title=title, links=links
+                **self.at(after),
+                agent="writer",
+                proposal_id=proposal_id,
+                title=proposal.title,
+                links=proposal.links,
             )
         )
 
@@ -165,35 +269,27 @@ r.thought(
     "writer", "Redacto la nota «Function calling en SLMs» enlazándola con Tool calling y SLM."
 )
 r.route("writer", "write_note", "large", LARGE_REASON, (3200, 900), after=6.0)
-r.propose(
-    "p-001",
-    "Function calling en SLMs",
-    ["agentes/Tool calling", "modelos/SLM", "proyecto/Diario de trabajo"],
-)
+r.propose("p-001")
 
 r.thought("writer", "Redacto «Routing de modelos» y la conecto con Sistemas multiagente.")
 r.route("writer", "write_note", "large", LARGE_REASON, (3000, 850), after=5.5)
-r.propose(
-    "p-002",
-    "Routing de modelos",
-    ["agentes/Sistemas multiagente", "proyecto/Objetivos del TFG", "modelos/LLM"],
-)
+r.propose("p-002")
 
 r.thought("writer", "Redacto «LoRA» como técnica de fine-tuning eficiente para el SLM del TFG.")
 r.route("writer", "write_note", "large", LARGE_REASON, (2800, 780), after=5.0)
-r.propose("p-003", "LoRA", ["modelos/Fine-tuning", "modelos/SLM"])
+r.propose("p-003")
 
 # --- Revisor: comprueba que cada afirmación tiene fuente --------------------
-r.tool("reviewer", "verify_claims", {"proposal_id": "p-001"}, "6 de 6 afirmaciones con fuente")
+r.tool("reviewer", "verify_claims", {"proposal_id": "p-001"}, "6 de 6 afirmaciones con respaldo")
 r.route("reviewer", "verify_claims", "slm", SLM_REASON, (2100, 150))
-r.tool("reviewer", "verify_claims", {"proposal_id": "p-002"}, "4 de 5 afirmaciones con fuente")
+r.tool("reviewer", "verify_claims", {"proposal_id": "p-002"}, "4 de 5 afirmaciones con respaldo")
 r.route("reviewer", "verify_claims", "slm", SLM_REASON, (2000, 160))
 r.thought(
     "reviewer",
     "En «Routing de modelos» una afirmación no tiene fuente: la marco para "
     "que la revises antes de aprobar.",
 )
-r.tool("reviewer", "verify_claims", {"proposal_id": "p-003"}, "5 de 5 afirmaciones con fuente")
+r.tool("reviewer", "verify_claims", {"proposal_id": "p-003"}, "5 de 5 afirmaciones con respaldo")
 r.route("reviewer", "verify_claims", "slm", SLM_REASON, (1900, 140))
 
 # --- Fin ---------------------------------------------------------------------
@@ -224,3 +320,20 @@ print(
     f"coste {totals.cost_usd:.5f} USD · sin router {totals.baseline_cost_usd:.5f} USD · "
     f"ahorro {totals.savings_usd:.5f} USD ({totals.savings_usd / totals.baseline_cost_usd:.0%})"
 )
+
+demo = {
+    "topic": DEMO_TOPIC,
+    "events": [e.model_dump(mode="json") for e in r.events],
+    "proposals": [p.model_dump(mode="json") for p in PROPOSALS.values()],
+    "metrics": [
+        {"metric": m.model_dump(mode="json"), "baseline_cost_usd": baseline}
+        for m, baseline in zip(
+            r.metrics,
+            [PRICES["large"].cost(m.prompt_tokens, m.completion_tokens) for m in r.metrics],
+            strict=True,
+        )
+    ],
+}
+demo_out = REPO_ROOT / "fixtures" / "demo_run.json"
+demo_out.write_text(json.dumps(demo, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+print(f"{len(PROPOSALS)} notas y {len(r.metrics)} métricas → {demo_out.relative_to(REPO_ROOT)}")

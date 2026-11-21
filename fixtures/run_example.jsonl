@@ -1,11 +1,11 @@
 {"run_id":"run-demo-001","ts":"2026-11-23T10:00:01Z","agent":"explorer","type":"agent_thought","text":"Leo la bóveda: 28 notas y 87 enlaces. Busco conceptos mencionados sin nota."}
 {"run_id":"run-demo-001","ts":"2026-11-23T10:00:01.500000Z","agent":"explorer","type":"tool_call","tool":"find_gaps","args":{}}
 {"run_id":"run-demo-001","ts":"2026-11-23T10:00:03.500000Z","agent":"explorer","type":"tool_result","tool":"find_gaps","summary":"7 lagunas: LoRA, Routing de modelos, Function calling en SLMs, Reanálisis, Evaluación de agentes, Llama, Qwen"}
-{"run_id":"run-demo-001","ts":"2026-11-23T10:00:05Z","agent":"explorer","type":"route_decision","task":"find_gaps","model":"demo/slm","tier":"slm","reason":"tarea acotada: se intenta primero con el modelo pequeño","escalated":false}
+{"run_id":"run-demo-001","ts":"2026-11-23T10:00:05Z","agent":"explorer","type":"route_decision","task":"find_gaps","model":"qwen/qwen-2.5-7b-instruct","tier":"slm","reason":"tarea acotada: se intenta primero con el modelo pequeño","escalated":false}
 {"run_id":"run-demo-001","ts":"2026-11-23T10:00:06Z","agent":"explorer","type":"agent_thought","text":"Para el tema pedido priorizo 3 lagunas: Function calling en SLMs, Routing de modelos y LoRA."}
 {"run_id":"run-demo-001","ts":"2026-11-23T10:00:06.500000Z","agent":"researcher","type":"tool_call","tool":"search_arxiv","args":{"query":"function calling small language models"}}
 {"run_id":"run-demo-001","ts":"2026-11-23T10:00:09.500000Z","agent":"researcher","type":"tool_result","tool":"search_arxiv","summary":"5 resultados de arXiv"}
-{"run_id":"run-demo-001","ts":"2026-11-23T10:00:11Z","agent":"researcher","type":"route_decision","task":"summarize_paper","model":"demo/slm","tier":"slm","reason":"tarea acotada: se intenta primero con el modelo pequeño","escalated":false}
+{"run_id":"run-demo-001","ts":"2026-11-23T10:00:11Z","agent":"researcher","type":"route_decision","task":"summarize_paper","model":"qwen/qwen-2.5-7b-instruct","tier":"slm","reason":"tarea acotada: se intenta primero con el modelo pequeño","escalated":false}
 {"run_id":"run-demo-001","ts":"2026-11-23T10:00:12Z","agent":"researcher","type":"agent_thought","text":"Los resultados coinciden en que los SLM fallan sobre todo en el formato de los argumentos, no en elegir la herramienta."}
 {"run_id":"run-demo-001","ts":"2026-11-23T10:00:12.500000Z","agent":"researcher","type":"tool_call","tool":"search_arxiv","args":{"query":"LLM routing cost quality"}}
 {"run_id":"run-demo-001","ts":"2026-11-23T10:00:15Z","agent":"researcher","type":"tool_result","tool":"search_arxiv","summary":"4 resultados de arXiv"}
@@ -13,24 +13,24 @@
 {"run_id":"run-demo-001","ts":"2026-11-23T10:00:20Z","agent":"researcher","type":"agent_thought","text":"Resumen listo tras escalar: el router decide por tarea y escala si la respuesta barata no pasa una validación."}
 {"run_id":"run-demo-001","ts":"2026-11-23T10:00:20.500000Z","agent":"researcher","type":"tool_call","tool":"search_arxiv","args":{"query":"LoRA low-rank adaptation fine-tuning"}}
 {"run_id":"run-demo-001","ts":"2026-11-23T10:00:22.500000Z","agent":"researcher","type":"tool_result","tool":"search_arxiv","summary":"6 resultados de arXiv"}
-{"run_id":"run-demo-001","ts":"2026-11-23T10:00:24Z","agent":"researcher","type":"route_decision","task":"summarize_paper","model":"demo/slm","tier":"slm","reason":"tarea acotada: se intenta primero con el modelo pequeño","escalated":false}
+{"run_id":"run-demo-001","ts":"2026-11-23T10:00:24Z","agent":"researcher","type":"route_decision","task":"summarize_paper","model":"qwen/qwen-2.5-7b-instruct","tier":"slm","reason":"tarea acotada: se intenta primero con el modelo pequeño","escalated":false}
 {"run_id":"run-demo-001","ts":"2026-11-23T10:00:25Z","agent":"writer","type":"agent_thought","text":"Redacto la nota «Function calling en SLMs» enlazándola con Tool calling y SLM."}
 {"run_id":"run-demo-001","ts":"2026-11-23T10:00:31Z","agent":"writer","type":"route_decision","task":"write_note","model":"demo/large","tier":"large","reason":"tarea compleja: se asigna directamente al modelo grande","escalated":false}
 {"run_id":"run-demo-001","ts":"2026-11-23T10:00:32Z","agent":"writer","type":"node_proposed","proposal_id":"p-001","title":"Function calling en SLMs","links":["agentes/Tool calling","modelos/SLM","proyecto/Diario de trabajo"]}
 {"run_id":"run-demo-001","ts":"2026-11-23T10:00:33Z","agent":"writer","type":"agent_thought","text":"Redacto «Routing de modelos» y la conecto con Sistemas multiagente."}
 {"run_id":"run-demo-001","ts":"2026-11-23T10:00:38.500000Z","agent":"writer","type":"route_decision","task":"write_note","model":"demo/large","tier":"large","reason":"tarea compleja: se asigna directamente al modelo grande","escalated":false}
-{"run_id":"run-demo-001","ts":"2026-11-23T10:00:39.500000Z","agent":"writer","type":"node_proposed","proposal_id":"p-002","title":"Routing de modelos","links":["agentes/Sistemas multiagente","proyecto/Objetivos del TFG","modelos/LLM"]}
+{"run_id":"run-demo-001","ts":"2026-11-23T10:00:39.500000Z","agent":"writer","type":"node_proposed","proposal_id":"p-002","title":"Routing de modelos","links":["modelos/LLM","agentes/Sistemas multiagente","proyecto/Objetivos del TFG"]}
 {"run_id":"run-demo-001","ts":"2026-11-23T10:00:40.500000Z","agent":"writer","type":"agent_thought","text":"Redacto «LoRA» como técnica de fine-tuning eficiente para el SLM del TFG."}
 {"run_id":"run-demo-001","ts":"2026-11-23T10:00:45.500000Z","agent":"writer","type":"route_decision","task":"write_note","model":"demo/large","tier":"large","reason":"tarea compleja: se asigna directamente al modelo grande","escalated":false}
 {"run_id":"run-demo-001","ts":"2026-11-23T10:00:46.500000Z","agent":"writer","type":"node_proposed","proposal_id":"p-003","title":"LoRA","links":["modelos/Fine-tuning","modelos/SLM"]}
 {"run_id":"run-demo-001","ts":"2026-11-23T10:00:47Z","agent":"reviewer","type":"tool_call","tool":"verify_claims","args":{"proposal_id":"p-001"}}
-{"run_id":"run-demo-001","ts":"2026-11-23T10:00:49Z","agent":"reviewer","type":"tool_result","tool":"verify_claims","summary":"6 de 6 afirmaciones con fuente"}
-{"run_id":"run-demo-001","ts":"2026-11-23T10:00:50.500000Z","agent":"reviewer","type":"route_decision","task":"verify_claims","model":"demo/slm","tier":"slm","reason":"tarea acotada: se intenta primero con el modelo pequeño","escalated":false}
+{"run_id":"run-demo-001","ts":"2026-11-23T10:00:49Z","agent":"reviewer","type":"tool_result","tool":"verify_claims","summary":"6 de 6 afirmaciones con respaldo"}
+{"run_id":"run-demo-001","ts":"2026-11-23T10:00:50.500000Z","agent":"reviewer","type":"route_decision","task":"verify_claims","model":"qwen/qwen-2.5-7b-instruct","tier":"slm","reason":"tarea acotada: se intenta primero con el modelo pequeño","escalated":false}
 {"run_id":"run-demo-001","ts":"2026-11-23T10:00:51Z","agent":"reviewer","type":"tool_call","tool":"verify_claims","args":{"proposal_id":"p-002"}}
-{"run_id":"run-demo-001","ts":"2026-11-23T10:00:53Z","agent":"reviewer","type":"tool_result","tool":"verify_claims","summary":"4 de 5 afirmaciones con fuente"}
-{"run_id":"run-demo-001","ts":"2026-11-23T10:00:54.500000Z","agent":"reviewer","type":"route_decision","task":"verify_claims","model":"demo/slm","tier":"slm","reason":"tarea acotada: se intenta primero con el modelo pequeño","escalated":false}
+{"run_id":"run-demo-001","ts":"2026-11-23T10:00:53Z","agent":"reviewer","type":"tool_result","tool":"verify_claims","summary":"4 de 5 afirmaciones con respaldo"}
+{"run_id":"run-demo-001","ts":"2026-11-23T10:00:54.500000Z","agent":"reviewer","type":"route_decision","task":"verify_claims","model":"qwen/qwen-2.5-7b-instruct","tier":"slm","reason":"tarea acotada: se intenta primero con el modelo pequeño","escalated":false}
 {"run_id":"run-demo-001","ts":"2026-11-23T10:00:55.500000Z","agent":"reviewer","type":"agent_thought","text":"En «Routing de modelos» una afirmación no tiene fuente: la marco para que la revises antes de aprobar."}
 {"run_id":"run-demo-001","ts":"2026-11-23T10:00:56Z","agent":"reviewer","type":"tool_call","tool":"verify_claims","args":{"proposal_id":"p-003"}}
-{"run_id":"run-demo-001","ts":"2026-11-23T10:00:58Z","agent":"reviewer","type":"tool_result","tool":"verify_claims","summary":"5 de 5 afirmaciones con fuente"}
-{"run_id":"run-demo-001","ts":"2026-11-23T10:00:59.500000Z","agent":"reviewer","type":"route_decision","task":"verify_claims","model":"demo/slm","tier":"slm","reason":"tarea acotada: se intenta primero con el modelo pequeño","escalated":false}
-{"run_id":"run-demo-001","ts":"2026-11-23T10:01:00.500000Z","agent":"system","type":"run_finished","stats":{"notes_proposed":3,"cost_usd":0.079181,"baseline_cost_usd":0.132,"savings_usd":0.052819,"escalations":1,"duration_s":60.5}}
+{"run_id":"run-demo-001","ts":"2026-11-23T10:00:58Z","agent":"reviewer","type":"tool_result","tool":"verify_claims","summary":"5 de 5 afirmaciones con respaldo"}
+{"run_id":"run-demo-001","ts":"2026-11-23T10:00:59.500000Z","agent":"reviewer","type":"route_decision","task":"verify_claims","model":"qwen/qwen-2.5-7b-instruct","tier":"slm","reason":"tarea acotada: se intenta primero con el modelo pequeño","escalated":false}
+{"run_id":"run-demo-001","ts":"2026-11-23T10:01:00.500000Z","agent":"system","type":"run_finished","stats":{"notes_proposed":3,"cost_usd":0.079312,"baseline_cost_usd":0.132,"savings_usd":0.052688,"escalations":1,"duration_s":60.5}}

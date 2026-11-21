@@ -35,6 +35,10 @@ class TooManyRunsError(RuntimeError):
     """Se alcanzó el máximo de investigaciones simultáneas."""
 
 
+class DailyQuotaExceededError(RuntimeError):
+    """Se agotó el cupo diario de investigaciones reales y no hay demo a la que volver."""
+
+
 class LLMNotConfiguredError(RuntimeError):
     """No hay clave de API o modelos configurados: no se puede investigar."""
 
@@ -49,8 +53,11 @@ class RunManager:
         search_tool: Tool,
         max_gaps: int = 3,
         demo: DemoRun | None = None,
+        force_demo: bool = False,
         max_concurrent: int = 3,
         retention_s: float = 300.0,
+        max_runs_per_day: int | None = None,
+        max_runs_per_ip_per_day: int | None = None,
     ):
         # router_factory es None si falta configurar el LLM (sin clave o sin modelos).
         self.store = store
@@ -58,7 +65,14 @@ class RunManager:
         self.router_factory = router_factory
         self.search_tool = search_tool
         self.max_gaps = max_gaps
-        self.demo = demo  # si está definido, cada investigación reproduce la grabación
+        # La demo se usa siempre si force_demo (DEMO_MODE=true); si no, solo como respaldo
+        # cuando no hay LLM configurado o se agota el cupo diario.
+        self.demo = demo
+        self.force_demo = force_demo
+        # Cupo de investigaciones REALES por día (UTC), en total y por IP. Con un proveedor
+        # gratuito protege su límite diario; con uno de pago, el gasto. None = sin límite.
+        self.max_runs_per_day = max_runs_per_day
+        self.max_runs_per_ip_per_day = max_runs_per_ip_per_day
         # En una URL pública, sin límite cualquiera podría lanzar cientos de investigaciones.
         self.max_concurrent = max_concurrent
         # Tras terminar, una investigación sigue en memoria un rato (para suscriptores que
@@ -67,21 +81,28 @@ class RunManager:
         self._live: dict[str, LiveRun] = {}
         self._tasks: set[asyncio.Task] = set()
 
-    async def start(self, topic: str) -> str:
+    async def start(self, topic: str, client_ip: str | None = None) -> str:
         if len(self._tasks) >= self.max_concurrent:
             raise TooManyRunsError(
                 f"Ya hay {self.max_concurrent} investigaciones en curso; inténtalo en un momento"
             )
-        if self.demo is not None:
-            return self._start_demo(topic)
+        if self.force_demo and self.demo is not None:
+            return self._start_demo(topic, client_ip)
         if self.router_factory is None:
+            if self.demo is not None:
+                return self._start_demo(topic, client_ip, reason="sin modelo configurado")
             raise LLMNotConfiguredError(
                 "Falta configurar el LLM: define LLM_API_KEY, SLM_MODEL y LARGE_MODEL"
             )
+        quota = self._quota_problem(client_ip)
+        if quota is not None:
+            if self.demo is not None:
+                return self._start_demo(topic, client_ip, reason=quota)
+            raise DailyQuotaExceededError(f"Se ha agotado {quota}; vuelve mañana")
         vault = parse_vault(self.vault_path)  # VaultNotFoundError si no existe
 
         run_id = f"run-{uuid.uuid4().hex[:12]}"
-        self.store.create_run(run_id, topic)
+        self.store.create_run(run_id, topic, client_ip=client_ip, mode="real")
         live = self._live[run_id] = LiveRun()
 
         router = self.router_factory()
@@ -107,12 +128,33 @@ class RunManager:
         self._track(task)
         return run_id
 
-    def _start_demo(self, topic: str) -> str:
+    def _quota_problem(self, client_ip: str | None) -> str | None:
+        """Describe qué cupo se ha agotado, o None si aún queda."""
+        if (
+            self.max_runs_per_day is not None
+            and self.store.count_runs_today("real") >= self.max_runs_per_day
+        ):
+            return "el cupo gratuito de investigaciones de hoy"
+        if (
+            self.max_runs_per_ip_per_day is not None
+            and client_ip is not None
+            and self.store.count_runs_today("real", client_ip) >= self.max_runs_per_ip_per_day
+        ):
+            return "tu cupo de investigaciones de hoy"
+        return None
+
+    def _start_demo(
+        self, topic: str, client_ip: str | None = None, reason: str | None = None
+    ) -> str:
+        # Una demo nueva sustituye a las notas pendientes de demos anteriores (son las mismas).
+        self.store.delete_pending_demo_proposals()
         run_id = f"run-{uuid.uuid4().hex[:12]}"
-        self.store.create_run(run_id, topic)
+        self.store.create_run(run_id, topic, client_ip=client_ip, mode="demo")
         live = self._live[run_id] = LiveRun()
         sink = RunSink(run_id, self.store, live)
-        self._track(asyncio.create_task(play_demo(self.demo, run_id, topic, sink), name=run_id))
+        self._track(
+            asyncio.create_task(play_demo(self.demo, run_id, topic, sink, reason), name=run_id)
+        )
         return run_id
 
     def _track(self, task: asyncio.Task) -> None:

@@ -30,6 +30,7 @@ def demo_manager(store, vault, *, speed: float, max_concurrent=3, retention_s=30
         router_factory=None,
         search_tool=fake_search_tool(),
         demo=DemoRun.load(DEMO_FILE, speed=speed),
+        force_demo=True,
         max_concurrent=max_concurrent,
         retention_s=retention_s,
     )

@@ -25,6 +25,13 @@ class Settings(BaseSettings):
     slm_model: str = ""
     large_model: str = ""
 
+    # Precios en USD por millón de tokens (entrada / salida) para calcular coste y ahorro.
+    # Son valores ORIENTATIVOS: ajústalos a los precios publicados de los modelos que elijas.
+    slm_price_input: float = 0.10
+    slm_price_output: float = 0.10
+    large_price_input: float = 3.00
+    large_price_output: float = 15.00
+
     vault_path: Path = REPO_ROOT / "demo-vault"
     database_path: Path = Path("data/vaultmind.db")
 

@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "vault_graph.schema.json",
+  "title": "VaultGraph",
+  "description": "GET /api/vault — la bóveda como grafo. Solo incluye enlaces entre notas que existen.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["nodes", "links"],
+  "properties": {
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "title", "path", "tags"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Ruta relativa sin extensión, con '/' como separador. Ej.: 'ml/transformers'."
+          },
+          "title": { "type": "string", "description": "Nombre del fichero sin .md (como lo muestra Obsidian)." },
+          "path": { "type": "string", "description": "Ruta relativa con extensión. Ej.: 'ml/transformers.md'." },
+          "tags": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "links": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["source", "target"],
+        "properties": {
+          "source": { "type": "string", "description": "id del nodo origen." },
+          "target": { "type": "string", "description": "id del nodo destino." }
+        }
+      }
+    }
+  }
+}

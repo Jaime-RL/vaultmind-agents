@@ -42,6 +42,8 @@ Cómo trabajan los agentes en cada investigación:
 
 Backend por separado: ver [`backend/README.md`](backend/README.md). Variables de entorno documentadas en [`.env.example`](.env.example).
 
+La URL pública funciona en **modo demo** (`DEMO_MODE=true`): reproduce una investigación grabada, así no necesita clave de API y ningún visitante puede gastar saldo. Para investigaciones reales, ejecútalo en local con tu clave.
+
 ## 4. Cómo se construyó con IA
 
 *[Persona B: flujo de trabajo con ramas, Conventional Commits y DevContainer.]*
@@ -87,7 +89,7 @@ El registro completo está en [`docs/ai-log.md`](docs/ai-log.md).
 
 **Pendiente antes de la entrega:**
 
-- Elegir los modelos (SLM y grande), fijar sus precios reales y ejecutar las evals (`backend/evals`). Sus resultados decidirán qué tareas puede hacer el SLM y darán la cifra de ahorro real; hasta entonces el ahorro del fixture (40 %) es solo ilustrativo.
+- SLM elegido: Qwen2.5 7B Instruct (`qwen/qwen-2.5-7b-instruct`). Falta elegir el modelo grande, fijar su precio real y ejecutar las evals (`backend/evals`). Sus resultados decidirán qué tareas puede hacer el SLM y darán la cifra de ahorro real; hasta entonces el ahorro del fixture (40 %) es solo ilustrativo.
 - *[Persona B: estado del frontend y del despliegue.]*
 
 **Próximos pasos:** ver el backlog de la sección 2.

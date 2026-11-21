@@ -47,3 +47,9 @@ Materia prima para la sección «Cómo se construyó con IA» del README. Apunta
 - **Qué funcionó:** tratar el título que da el LLM como entrada no confiable (limpieza de caracteres, nada de `..`, ni enlaces simbólicos fuera de la bóveda) y crear el fichero en modo exclusivo para no sobrescribir nunca. Una prueba de punta a punta con el cableado de producción y la red simulada (`httpx.MockTransport`) verificó de una vez el cliente OpenAI real, el tool calling, el SSE, SQLite, la aprobación y las métricas.
 - **Qué costó o falló:** los tests del cliente OpenAI usaban objetos imitados; se comprobó aparte que `to_response` funciona con los objetos reales del SDK antes de fiarse.
 - **Qué cambiaría:** las evals están listas pero no se han ejecutado: falta elegir los modelos y poner una clave. Sus resultados son los que deberían fijar la política del router, en lugar de las reglas escritas a mano.
+
+### 2026-11-21 · Persona A · Modelo SLM y modo demo
+- **Prompt:** «Usa Qwen de unos 7B de parámetros; hacemos una demo».
+- **Qué funcionó:** comprobar el identificador y el precio del modelo en OpenRouter (y que admite tool calling) antes de configurarlo, y verificar en arxiv.org los papers que citan las notas de la demo para no publicar fuentes inventadas. La demo reutiliza el camino real (SSE, SQLite, propuestas, métricas): solo cambia de dónde salen los eventos.
+- **Qué costó o falló:** un reemplazo con expresión regular en el script del fixture borró de más (tres llamadas que el formateador había partido en varias líneas). Se detectó revisando el diff antes de seguir. Lección: tras una edición automática, mirar el diff.
+- **Qué cambiaría:** si la reproducción fallara a mitad, el flujo SSE quedaría abierto; se añadió que la demo cierre siempre con `error`, igual que una investigación real.

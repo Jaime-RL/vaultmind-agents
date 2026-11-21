@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getHealth } from './api/client'
+import { GraphView } from './features/graph/GraphView'
+import { useVaultGraph } from './features/graph/useVaultGraph'
 import './App.css'
 
 type BackendStatus = 'checking' | 'ok' | 'down'
@@ -10,12 +12,8 @@ const STATUS_LABEL: Record<BackendStatus, string> = {
   down: 'Backend no disponible',
 }
 
-// Esqueleto del día 1: solo demuestra que frontend y backend se hablan
-// (a través del proxy de Vite en desarrollo). Las vistas de cada historia
-// (grafo, panel de agentes, revisión, router) irán en src/features/.
-export default function App() {
+function useBackendStatus(): BackendStatus {
   const [status, setStatus] = useState<BackendStatus>('checking')
-
   useEffect(() => {
     // `cancelled` evita actualizar el estado si el componente se desmonta antes
     // de que llegue la respuesta (y el doble montaje de StrictMode en desarrollo).
@@ -27,16 +25,30 @@ export default function App() {
       cancelled = true
     }
   }, [])
+  return status
+}
+
+export default function App() {
+  const status = useBackendStatus()
+  const { state: vaultState, reload: reloadVault } = useVaultGraph()
 
   return (
-    <main className="app">
-      <header className="app__header">
-        <h1>VaultMind</h1>
-        <p className="app__tagline">Agentes que investigan y hacen crecer tu bóveda de Obsidian</p>
+    <div className="app">
+      <header className="topbar">
+        <div className="topbar__brand">
+          <h1>VaultMind</h1>
+          <p className="topbar__tagline">Agentes que investigan y hacen crecer tu bóveda de Obsidian</p>
+        </div>
+        <p className={`status status--${status}`} role="status" aria-label="Estado del backend">
+          {STATUS_LABEL[status]}
+        </p>
       </header>
-      <p className={`status status--${status}`} role="status">
-        {STATUS_LABEL[status]}
-      </p>
-    </main>
+
+      <main className="workspace">
+        <section className="workspace__graph" aria-label="Grafo de la bóveda">
+          <GraphView state={vaultState} onRetry={reloadVault} />
+        </section>
+      </main>
+    </div>
   )
 }

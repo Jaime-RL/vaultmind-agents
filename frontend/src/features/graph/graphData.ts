@@ -1,0 +1,91 @@
+import type { Agent, Tier, VaultGraph } from '../../api/contract.gen'
+import { AGENT_COLORS, folderColor } from './colors'
+
+/** Nota propuesta por los agentes que todavía no está en la bóveda. */
+export interface ProposedNode {
+  id: string // proposal_id
+  title: string
+  links: string[] // ids de notas existentes
+  agent: Agent
+  // El contrato no dice qué modelo escribió cada nota en node_proposed: lo deducimos
+  // del último route_decision de ese agente (ver runReducer). Puede faltar.
+  tier?: Tier
+  status: 'pending' | 'approved' | 'rejected'
+}
+
+export interface GraphNode {
+  id: string
+  title: string
+  kind: 'note' | 'proposed'
+  color: string
+  /** Tamaño relativo (nodeVal): crece con el número de enlaces. */
+  val: number
+  folder?: string
+  agent?: Agent
+  tier?: Tier
+}
+
+export interface GraphLink {
+  source: string
+  target: string
+  proposed: boolean
+}
+
+export interface GraphData {
+  nodes: GraphNode[]
+  links: GraphLink[]
+}
+
+/**
+ * Une la bóveda y las notas propuestas en el formato de react-force-graph.
+ *
+ * Es una función pura (sin React ni WebGL) para poder probar con detalle lo que
+ * se pinta: qué nodos aparecen, sus colores y qué enlaces se descartan.
+ */
+export function buildGraphData(vault: VaultGraph, proposed: ProposedNode[] = []): GraphData {
+  const degree = new Map<string, number>()
+  const bump = (id: string) => degree.set(id, (degree.get(id) ?? 0) + 1)
+  for (const link of vault.links) {
+    bump(link.source)
+    bump(link.target)
+  }
+
+  const known = new Set(vault.nodes.map((node) => node.id))
+
+  const nodes: GraphNode[] = vault.nodes.map((node) => {
+    // id = ruta sin extensión ("rag/Chunking"): la primera parte es la carpeta.
+    const folder = node.id.includes('/') ? node.id.split('/')[0]! : '(raíz)'
+    return {
+      id: node.id,
+      title: node.title,
+      kind: 'note',
+      folder,
+      color: folderColor(folder),
+      val: 1 + (degree.get(node.id) ?? 0) * 0.5,
+    }
+  })
+
+  const links: GraphLink[] = vault.links.map((link) => ({ ...link, proposed: false }))
+
+  for (const proposal of proposed) {
+    // Rechazadas: desaparecen del grafo. Aprobadas: siguen, ya como parte de la bóveda.
+    if (proposal.status === 'rejected') continue
+    // Si la nota se aprobó y la bóveda ya se recargó con ella, no la duplicamos.
+    if (known.has(proposal.id)) continue
+    nodes.push({
+      id: proposal.id,
+      title: proposal.title,
+      kind: 'proposed',
+      agent: proposal.agent,
+      tier: proposal.tier,
+      color: AGENT_COLORS[proposal.agent],
+      val: 4,
+    })
+    for (const target of proposal.links) {
+      // Un enlace a un nodo que no existe haría fallar el layout: se descarta.
+      if (known.has(target)) links.push({ source: proposal.id, target, proposed: true })
+    }
+  }
+
+  return { nodes, links }
+}

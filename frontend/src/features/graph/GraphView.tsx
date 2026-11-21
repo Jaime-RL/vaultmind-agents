@@ -78,13 +78,13 @@ function ReadyGraph({
   fitAll?: boolean
 }) {
   const data = useMemo(() => buildGraphData(vault, proposed), [vault, proposed])
-  const pending = proposed.filter((p) => p.status !== 'rejected').length
+  const pending = proposed.filter((p) => p.status === 'pending').length
 
   return (
     <div className="graph">
       <p className="graph__summary">
         {vault.nodes.length} notas · {vault.links.length} enlaces
-        {pending > 0 && ` · ${pending} propuestas`}
+        {pending > 0 && ` · ${pending} ${pending === 1 ? 'propuesta' : 'propuestas'}`}
       </p>
       <GraphErrorBoundary>
         <Suspense fallback={<p className="graph-message">Preparando el grafo 3D…</p>}>

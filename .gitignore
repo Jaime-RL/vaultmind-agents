@@ -39,3 +39,6 @@ data/
 !.vscode/extensions.json
 .DS_Store
 Thumbs.db
+
+# --- Notas aprobadas en local sobre la bóveda de demostración (se generan al usar la app) ---
+demo-vault/_copilot/

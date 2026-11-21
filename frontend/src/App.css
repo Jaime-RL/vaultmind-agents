@@ -444,3 +444,107 @@ code {
     animation: none;
   }
 }
+
+/* ---------- Revisión de notas ---------- */
+
+.review-panel__intro {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.proposal-list {
+  margin: 0;
+  padding: 0 0.75rem 1rem;
+  list-style: none;
+}
+
+.proposal {
+  margin-bottom: 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.proposal--open {
+  border-color: var(--accent);
+}
+
+.proposal__header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  width: 100%;
+  padding: 0.65rem 0.8rem;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.proposal__title {
+  font-weight: 600;
+}
+
+.proposal__meta {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.proposal__body {
+  padding: 0 0.8rem 0.8rem;
+  border-top: 1px solid var(--border);
+}
+
+.note-markdown {
+  font-size: 0.9rem;
+}
+
+.note-markdown h1,
+.note-markdown h2,
+.note-markdown h3 {
+  margin: 0.9rem 0 0.4rem;
+  font-size: 1rem;
+}
+
+.note-markdown a,
+.proposal__sources a {
+  color: #79c0ff;
+}
+
+.wikilink {
+  padding: 0 0.3rem;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.wikilink--known {
+  background: rgb(88 166 255 / 0.15);
+  color: #79c0ff;
+}
+
+.wikilink--new {
+  background: rgb(242 204 96 / 0.12);
+  color: #f2cc60;
+}
+
+.proposal__sources h3 {
+  margin: 0.75rem 0 0.25rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.proposal__sources ol {
+  margin: 0;
+  padding-left: 1.2rem;
+  font-size: 0.85rem;
+}
+
+.proposal__actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.9rem;
+}

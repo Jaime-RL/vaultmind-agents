@@ -9,11 +9,14 @@ from dataclasses import dataclass
 import httpx
 
 from agents import ArxivClient
-from app.config import Settings
+from app.config import REPO_ROOT, Settings
 from llm.openai_compat import OpenAICompatClient
 from router import ModelPrice, SmartRoute
 from runs import RunManager
+from runs.demo import DemoRun
 from store import Store
+
+DEMO_FILE = REPO_ROOT / "fixtures" / "demo_run.json"
 
 
 @dataclass
@@ -38,6 +41,9 @@ def build_services(
             vault_path=settings.vault_path,
             router_factory=router_factory(settings, llm_http),
             search_tool=ArxivClient(http=arxiv_http, min_interval=arxiv_min_interval).as_tool(),
+            demo=(
+                DemoRun.load(DEMO_FILE, speed=settings.demo_speed) if settings.demo_mode else None
+            ),
         ),
     )
 

@@ -18,14 +18,13 @@ from collections.abc import AsyncIterator, Callable
 from pathlib import Path
 
 from agents import Emitter, Tool, run_research
-from agents.events import Event
 from router import SmartRoute
+from runs.demo import DemoRun, play_demo
+from runs.sink import LiveRun, RunSink
 from store import Store
 from vault import parse_vault
 
 logger = logging.getLogger(__name__)
-
-TERMINAL = {"run_finished", "error"}
 
 
 class RunNotFoundError(KeyError):
@@ -34,34 +33,6 @@ class RunNotFoundError(KeyError):
 
 class LLMNotConfiguredError(RuntimeError):
     """No hay clave de API o modelos configurados: no se puede investigar."""
-
-
-class LiveRun:
-    """Eventos de una investigación en curso, con aviso a los suscriptores."""
-
-    def __init__(self) -> None:
-        self.events: list[dict] = []
-        self.done = False
-        self.changed = asyncio.Condition()
-
-
-class RunSink:
-    """Destino de eventos: SQLite + suscriptores en directo."""
-
-    def __init__(self, run_id: str, store: Store, live: LiveRun):
-        self.run_id, self.store, self.live = run_id, store, live
-
-    async def emit(self, event: Event) -> None:
-        data = event.model_dump(mode="json")
-        self.store.add_event(self.run_id, event.model_dump_json())
-        if event.type in TERMINAL:
-            self.store.finish_run(
-                self.run_id, "finished" if event.type == "run_finished" else "error"
-            )
-        async with self.live.changed:
-            self.live.events.append(data)
-            self.live.done = event.type in TERMINAL
-            self.live.changed.notify_all()
 
 
 class RunManager:
@@ -73,6 +44,7 @@ class RunManager:
         router_factory: Callable[[], SmartRoute] | None,
         search_tool: Tool,
         max_gaps: int = 3,
+        demo: DemoRun | None = None,
     ):
         # router_factory es None si falta configurar el LLM (sin clave o sin modelos).
         self.store = store
@@ -80,10 +52,13 @@ class RunManager:
         self.router_factory = router_factory
         self.search_tool = search_tool
         self.max_gaps = max_gaps
+        self.demo = demo  # si está definido, cada investigación reproduce la grabación
         self._live: dict[str, LiveRun] = {}
         self._tasks: set[asyncio.Task] = set()
 
     async def start(self, topic: str) -> str:
+        if self.demo is not None:
+            return self._start_demo(topic)
         if self.router_factory is None:
             raise LLMNotConfiguredError(
                 "Falta configurar el LLM: define LLM_API_KEY, SLM_MODEL y LARGE_MODEL"
@@ -114,10 +89,21 @@ class RunManager:
             ),
             name=run_id,
         )
+        self._track(task)
+        return run_id
+
+    def _start_demo(self, topic: str) -> str:
+        run_id = f"run-{uuid.uuid4().hex[:12]}"
+        self.store.create_run(run_id, topic)
+        live = self._live[run_id] = LiveRun()
+        sink = RunSink(run_id, self.store, live)
+        self._track(asyncio.create_task(play_demo(self.demo, run_id, topic, sink), name=run_id))
+        return run_id
+
+    def _track(self, task: asyncio.Task) -> None:
         # Guardamos la referencia: asyncio solo guarda referencias débiles a las tareas.
         self._tasks.add(task)
         task.add_done_callback(self._on_done)
-        return run_id
 
     def _on_done(self, task: asyncio.Task) -> None:
         self._tasks.discard(task)

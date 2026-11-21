@@ -17,3 +17,9 @@ Materia prima para la sección «Cómo se construyó con IA» del README. Apunta
 - **Qué funcionó:** pedir el plan primero permitió fijar decisiones antes de escribir código (esquemas JSON como fuente de verdad del contrato; `FakeLLMClient` que falla si se acaba el guion).
 - **Qué costó o falló:**
 - **Qué cambiaría:**
+
+### 2026-11-21 · Persona A · HU1: parser de la bóveda
+- **Prompt:** «Parser de la bóveda (Markdown + wikilinks) → /api/vault, con tests. Crear la bóveda de demostración».
+- **Qué funcionó:** escribir primero una bóveda mínima con todos los casos límite de Obsidian (alias, secciones, embebidos, nombres repetidos, código). Los tests encontraron un bug real: el `#` de `[[#Encabezado]]` se leía como etiqueta.
+- **Qué costó o falló:** al arrancar el servidor a mano, la ruta por defecto `demo-vault` era relativa al directorio actual y fallaba desde `backend/`; los tests no lo detectaron porque pasaban la ruta explícita. Además, la regla `vault/` del `.gitignore` ignoraba en silencio `backend/vault/` y el código no se subía. Lección: probar la app real y revisar `git status` antes de dar algo por subido.
+- **Qué cambiaría:** —

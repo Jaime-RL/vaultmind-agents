@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from app.config import Settings
+from app.config import REPO_ROOT, Settings
 
 
 def test_starts_without_env_file(monkeypatch):
@@ -11,7 +11,9 @@ def test_starts_without_env_file(monkeypatch):
     settings = Settings(_env_file=None)
 
     assert settings.llm_base_url.startswith("https://")
-    assert settings.vault_path == Path("demo-vault")
+    # Por defecto, la bóveda de demo del repo, con ruta absoluta (no depende del directorio actual).
+    assert settings.vault_path == REPO_ROOT / "demo-vault"
+    assert settings.vault_path.is_dir()
     assert settings.llm_api_key.get_secret_value() == ""
 
 

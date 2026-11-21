@@ -10,6 +10,10 @@ from pathlib import Path
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# Raíz del repo (backend/app/config.py → dos niveles arriba). Así la bóveda de
+# demostración se encuentra igual arranques el servidor desde la raíz o desde backend/.
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
@@ -21,7 +25,7 @@ class Settings(BaseSettings):
     slm_model: str = ""
     large_model: str = ""
 
-    vault_path: Path = Path("demo-vault")
+    vault_path: Path = REPO_ROOT / "demo-vault"
     database_path: Path = Path("data/vaultmind.db")
 
     # Orígenes que pueden llamar a la API desde el navegador (el dev server de Vite por defecto).

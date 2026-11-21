@@ -3,6 +3,7 @@
 import pytest
 
 from agents import Finding, Gap, Source, review_notes, write_notes
+from agents.reviewer import unique_issues
 from llm import LLMError, LLMResponse
 from tests.conftest import PAPER_URL, final
 from vault import parse_vault
@@ -175,3 +176,20 @@ async def test_writer_saves_each_proposal_before_emitting_node_proposed(
 
     assert events_when_saved == [0]  # se guardó cuando aún no se había emitido el evento
     assert any(e.type == "node_proposed" and e.proposal_id == proposal.id for e in sink.events)
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        # Regresión: el SLM repetía cinco veces la misma frase del ejemplo del prompt.
+        (["afirmación sin respaldo"] * 5, ["afirmación sin respaldo"]),
+        (
+            ["La cifra del 40 %", "la  cifra del 40 %", " ", "El año 2019"],
+            ["La cifra del 40 %", "El año 2019"],
+        ),
+        ([f"p{i}" for i in range(8)], [f"p{i}" for i in range(5)]),
+        ("no es una lista", []),
+    ],
+)
+def test_unique_issues(raw, expected):
+    assert unique_issues(raw) == expected

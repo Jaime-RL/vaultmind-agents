@@ -67,7 +67,7 @@ async def review_note(
     claims = max(as_int(data.get("claims")), 0)
     # Un modelo pequeño puede devolver más «respaldadas» que afirmaciones: lo acotamos.
     supported = min(max(as_int(data.get("supported")), 0), claims)
-    issues = [str(i) for i in data.get("issues", []) if str(i).strip()][:5]
+    issues = unique_issues(data.get("issues", []))
     review = Review(proposal.id, claims, supported, issues)
 
     await emitter.tool_result(
@@ -86,3 +86,15 @@ def as_int(value) -> int:
         return int(value)
     except (TypeError, ValueError):
         return 0
+
+
+def unique_issues(raw, limit: int = 5) -> list[str]:
+    """Problemas sin duplicados (un modelo pequeño tiende a repetir la misma frase)."""
+    if not isinstance(raw, list):
+        return []
+    result: list[str] = []
+    for item in raw:
+        text = " ".join(str(item).split())
+        if text and text.lower() not in {r.lower() for r in result}:
+            result.append(text)
+    return result[:limit]

@@ -52,28 +52,36 @@ def parse_json(response: LLMResponse) -> dict:
 
 
 def explorer_case(case_id: str, topic: str, gaps: list[str], relevant: set[str]) -> Case:
+    """`relevant` vacío = ninguna laguna tiene relación: lo correcto es no elegir ninguna."""
+
     def check(response: LLMResponse) -> tuple[bool, str]:
         try:
-            selected = parse_json(response).get("selected")
+            data = parse_json(response)
         except (ValueError, json.JSONDecodeError):
             return False, "JSON inválido"
-        if not isinstance(selected, list) or not selected:
-            return False, "sin selección"
-        if len(selected) > 3:
-            return False, f"eligió {len(selected)} (máximo 3)"
+        title, selected = data.get("topic_note"), data.get("selected")
+        if not isinstance(title, str) or not title.strip():
+            return False, "sin título para la nota del tema"
+        if not isinstance(selected, list):
+            return False, "selected no es una lista"
+        if len(selected) > 2:
+            return False, f"eligió {len(selected)} (máximo 2)"
         invented = [s for s in selected if s not in gaps]
         if invented:
             return False, f"inventó o reescribió: {invented}"
-        if not set(selected) & relevant:
-            return False, f"ninguna relevante: {selected}"
-        return True, f"eligió {selected}"
+        unrelated = [s for s in selected if s not in relevant]
+        if unrelated:
+            return False, f"eligió lagunas sin relación: {unrelated}"
+        if relevant and not selected:
+            return False, "no eligió ninguna laguna relacionada"
+        return True, f"«{title.strip()}» + {selected}"
 
     candidates = "\n".join(f"- {g}" for g in gaps)
     return Case(
         id=case_id,
         task="find_gaps",
         messages=[
-            {"role": "system", "content": EXPLORER.format(max_gaps=3)},
+            {"role": "system", "content": EXPLORER.format(max_related=2)},
             {"role": "user", "content": f"Tema: {topic}\n\nLagunas:\n{candidates}"},
         ],
         check=check,
@@ -251,6 +259,12 @@ CASES: list[Case] = [
         "Ajuste fino eficiente",
         ["LoRA"],
         {"LoRA"},
+    ),
+    explorer_case(
+        "explorer-sin-relacion",
+        "Multi-token prediction",
+        ["LoRA", "Reanálisis", "Qwen"],
+        set(),
     ),
     researcher_case("researcher-two-papers", "Function calling en SLMs", PAPERS),
     researcher_case("researcher-one-paper", "Routing de modelos", PAPERS[1:]),

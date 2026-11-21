@@ -10,6 +10,9 @@ services:
     runtime: docker
     plan: free
     branch: main
+    # Despliega solo el hook de .github/workflows/deploy.yml: si Render también
+    # desplegara al ver el push a main, cada release se desplegaría dos veces.
+    autoDeployTrigger: "off"
     dockerfilePath: ./Dockerfile
     dockerContext: .
     healthCheckPath: /api/health

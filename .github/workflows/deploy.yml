@@ -1,0 +1,30 @@
+# Despliegue continuo: cada push a main (es decir, cada release) despliega en Render.
+#
+# Usa un «deploy hook» de Render (Settings del servicio → Deploy Hook): una URL que,
+# al llamarla, lanza un despliegue. Se guarda como secreto del repositorio
+# RENDER_DEPLOY_HOOK_URL, porque quien la conozca puede desplegar.
+# Si el secreto no existe, el job no falla: solo avisa.
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Lanzar el despliegue en Render
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "::warning::Falta el secreto RENDER_DEPLOY_HOOK_URL: no se despliega."
+            exit 0
+          fi
+          curl -fsS -X POST "$HOOK" > /dev/null
+          echo "Despliegue lanzado en Render."

@@ -137,3 +137,9 @@ Materia prima para la sección «Cómo se construyó con IA» del README. Apunta
 - **Qué funcionó:** Semantic Scholar como segunda herramienta del Investigador, con año, revista y citas, ordenada por citas. Cuando un paper también está en arXiv se usa su URL de arXiv, así que la verificación de fuentes (por id de arXiv) reconoce como uno solo el mismo paper encontrado por las dos herramientas. Caché de 24 h en memoria para las dos fuentes: la misma búsqueda no se repite (arXiv pide 3 s entre peticiones).
 - **Qué costó o falló:** la API sin clave tiene un límite compartido y responde 429 a menudo; en lugar de fallar, la herramienta devuelve un error legible («usa search_arxiv») y el modelo sigue con arXiv. No se pudo probar contra la API real desde el entorno del agente (sin red): los tests usan respuestas simuladas con el formato documentado.
 - **Qué cambiaría:** pedir una clave gratuita de Semantic Scholar para la URL pública. Las evals con búsquedas grabadas quedan pendientes: grabar respuestas reales exige red.
+
+### 2026-11-22 · Persona A (agente autónomo) · Fase 8: tabla de SmartRoute para el README
+- **Prompt:** roadmap autónomo, fase 8.
+- **Qué funcionó:** `evals/report.py` simula SmartRoute con los resultados reales de cada caso: si la política manda la tarea al SLM y este falla, se cobra también el modelo grande (la escalada). Lo compara con usar siempre el grande y genera una sección lista para pegar en el README (ahorro, casos resueltos, escaladas y acierto por tarea). No llama a ningún modelo: solo lee el JSON que deja `evals.run`.
+- **Qué costó o falló:** ejecutar las evals necesita la clave de Groq, que el agente no puede leer (`.env`); lo lanza la persona.
+- **Qué cambiaría:** añadir casos de `answer_question` (Pregunta a tu bóveda) a las evals.

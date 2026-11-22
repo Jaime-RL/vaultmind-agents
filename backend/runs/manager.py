@@ -18,6 +18,8 @@ from collections.abc import AsyncIterator, Callable
 from pathlib import Path
 
 from agents import Emitter, Tool, run_research
+from agents.asker import answer_question
+from app.contracts import AskResponse
 from router import SmartRoute
 from runs.demo import DemoRun, play_demo
 from runs.sink import LiveRun, RunSink
@@ -59,6 +61,8 @@ class RunManager:
         retention_s: float = 300.0,
         max_runs_per_day: int | None = None,
         max_runs_per_ip_per_day: int | None = None,
+        max_asks_per_day: int | None = None,
+        max_asks_per_ip_per_day: int | None = None,
     ):
         # router_factory es None si falta configurar el LLM (sin clave o sin modelos).
         self.store = store
@@ -74,6 +78,8 @@ class RunManager:
         # gratuito protege su límite diario; con uno de pago, el gasto. None = sin límite.
         self.max_runs_per_day = max_runs_per_day
         self.max_runs_per_ip_per_day = max_runs_per_ip_per_day
+        self.max_asks_per_day = max_asks_per_day
+        self.max_asks_per_ip_per_day = max_asks_per_ip_per_day
         # En una URL pública, sin límite cualquiera podría lanzar cientos de investigaciones.
         self.max_concurrent = max_concurrent
         # Tras terminar, una investigación sigue en memoria un rato (para suscriptores que
@@ -149,6 +155,46 @@ class RunManager:
         ):
             return "tu cupo de investigaciones de hoy"
         return None
+
+    async def ask(
+        self, question: str, client_ip: str | None = None, owner: str | None = None
+    ) -> AskResponse:
+        """Responde una pregunta con las notas de la bóveda (y las aprobadas del visitante).
+
+        Sin LLM configurado o con el cupo de preguntas agotado no da error: responde
+        señalando las notas relevantes, sin redactar (no cuesta nada).
+        """
+        vault = parse_vault(self.vault_path, self.approved_notes(owner))
+        use_llm = self.router_factory is not None and not self._ask_quota_exhausted(client_ip)
+        run_id = f"ask-{uuid.uuid4().hex[:12]}"
+        router = None
+        if use_llm:
+            assert self.router_factory is not None
+            router = self.router_factory()
+            router.on_record = (
+                self.store.add_metric
+            )  # las preguntas también cuentan en /api/metrics
+            self.store.create_run(
+                run_id, question[:200], client_ip=client_ip, mode="ask", owner=owner
+            )
+        try:
+            return await answer_question(
+                question=question, vault=vault, router=router, run_id=run_id
+            )
+        finally:
+            if use_llm:
+                self.store.finish_run(run_id, "finished")
+
+    def _ask_quota_exhausted(self, client_ip: str | None) -> bool:
+        if self.max_asks_per_day is not None and (
+            self.store.count_runs_today("ask") >= self.max_asks_per_day
+        ):
+            return True
+        return (
+            self.max_asks_per_ip_per_day is not None
+            and client_ip is not None
+            and self.store.count_runs_today("ask", client_ip) >= self.max_asks_per_ip_per_day
+        )
 
     def approved_notes(self, owner: str | None) -> dict[str, str]:
         """Notas aprobadas por un visitante (modo público), como ficheros virtuales de la bóveda."""

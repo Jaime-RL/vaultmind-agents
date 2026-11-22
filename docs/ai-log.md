@@ -113,3 +113,9 @@ Materia prima para la sección «Cómo se construyó con IA» del README. Apunta
 - **Qué funcionó:** el roadmap proponía una respuesta en streaming (SSE), pero SmartRoute decide si escalar validando la respuesta COMPLETA del SLM (que cite notas reales). Mostrar en directo una respuesta que luego se descarta sería confuso, así que el contrato es una petición/respuesta JSON y el efecto de escritura se hace en el frontend. La respuesta incluye qué modelo respondió, si escaló y el coste: la pregunta también enseña SmartRoute.
 - **Qué costó o falló:** nada.
 - **Qué cambiaría:** si las respuestas fueran largas, streaming del modelo grande solo después de escalar.
+
+### 2026-11-22 · Persona A (agente autónomo) · Fase 5b: «Pregunta a tu bóveda» (backend)
+- **Prompt:** roadmap autónomo, fase 5.
+- **Qué funcionó:** reparto claro entre código y modelo. BM25 (sin dependencias) elige las 5 notas más relevantes; el SLM redacta. El validador de SmartRoute exige que la respuesta cite al menos una de esas notas: si el SLM contesta de memoria, se escala al modelo grande. Las citas se calculan resolviendo los `[[enlaces]]` contra las notas que se le dieron, así que no puede citar una nota que no ha leído. Sin LLM o con el cupo agotado no da error: señala las notas relevantes sin redactar (coste 0).
+- **Qué costó o falló:** un test esperaba que se citara una nota que BM25 no había elegido para esa pregunta: el comportamiento era el correcto y el test, no. Y ruff convertía la lista de palabras vacías en 80 líneas; se dejó con `# fmt: off`.
+- **Qué cambiaría:** BM25 no entiende sinónimos («ajuste fino» frente a «fine-tuning»); el siguiente paso serían embeddings.

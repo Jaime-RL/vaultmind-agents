@@ -54,6 +54,10 @@ class Settings(BaseSettings):
     # la grabación, se sirve el modo demo en su lugar. 0 = sin límite.
     max_runs_per_day: int = 10
     max_runs_per_ip_per_day: int = 3
+    # Cupo de preguntas a la bóveda por día (UTC), en total y por IP. Son mucho más baratas
+    # que una investigación (una sola llamada), por eso el cupo es mayor. 0 = sin límite.
+    max_asks_per_day: int = 200
+    max_asks_per_ip_per_day: int = 20
     # Usar la demo como respaldo (sin clave configurada o cupo agotado) en lugar de dar error.
     demo_fallback: bool = True
     # URL pública: cada visitante (cookie anónima) ve y resuelve solo SUS propuestas, y lo que

@@ -47,6 +47,8 @@ def build_services(
             retention_s=settings.finished_run_retention_s,
             max_runs_per_day=settings.max_runs_per_day or None,
             max_runs_per_ip_per_day=settings.max_runs_per_ip_per_day or None,
+            max_asks_per_day=settings.max_asks_per_day or None,
+            max_asks_per_ip_per_day=settings.max_asks_per_ip_per_day or None,
         ),
     )
 

@@ -64,12 +64,30 @@ def test_metrics_after_a_run_match_run_finished(client):
     assert body["totals"]["savings_usd"] == pytest.approx(stats["savings_usd"])
 
 
+def reject_pending(client) -> None:
+    for proposal in client.get("/api/proposals?status=pending").json():
+        client.post(f"/api/proposals/{proposal['id']}", json={"action": "reject"})
+
+
 def test_metrics_aggregate_all_runs_by_default(client):
     first = run_to_completion(client)
+    reject_pending(client)  # si no, la segunda no repetiría notas pendientes (ver abajo)
     run_to_completion(client)
 
     assert client.get("/api/metrics").json()["totals"]["tasks"] == 10
     assert client.get(f"/api/metrics?run_id={first}").json()["totals"]["tasks"] == 5
+
+
+def test_repeating_a_topic_does_not_duplicate_pending_proposals(client):
+    """Regresión: lanzar dos veces el mismo tema dejaba dos propuestas de cada nota."""
+    run_to_completion(client)
+    first = client.get("/api/proposals?status=pending").json()
+
+    second_run = run_to_completion(client)
+
+    assert len(client.get("/api/proposals?status=pending").json()) == len(first)
+    # Solo el Explorador llega a llamar al modelo: lo demás ya estaba pendiente.
+    assert client.get(f"/api/metrics?run_id={second_run}").json()["totals"]["tasks"] == 1
 
 
 def test_unknown_run_returns_404(client):

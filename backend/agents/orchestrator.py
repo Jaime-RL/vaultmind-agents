@@ -7,7 +7,7 @@ la interfaz siempre sabe cuándo ha acabado la investigación.
 """
 
 import time
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Collection, Sequence
 from dataclasses import dataclass, field
 
 from agents.editorial import write_and_review
@@ -18,7 +18,7 @@ from agents.reviewer import Review
 from agents.tools import Tool
 from agents.writer import ProposalCallback
 from app.contracts import ContentLanguage, Proposal, RunStats
-from app.i18n import resolve_language, tr
+from app.i18n import note_language, tr
 from router import SmartRoute
 from vault import Vault
 
@@ -44,12 +44,15 @@ async def run_research(
     max_gaps: int = 3,
     clock: Callable[[], float] = time.monotonic,
     language: ContentLanguage = "auto",
+    pending_titles: Collection[str] = (),
 ) -> ResearchResult | None:
+    """`pending_titles`: propuestas sin revisar del usuario; no se vuelven a investigar."""
     start = clock()
     result = ResearchResult()
-    # Idioma de las notas: el elegido o, con «auto», el del tema (si no se distingue, el de
-    # la interfaz). Los mensajes del panel van en emitter.lang.
-    lang = resolve_language(language, topic, ui=emitter.lang)
+    # Idioma de las notas: el elegido o, con «auto», el de la bóveda (salvo que el tema sea
+    # claramente una frase en otro idioma). Los mensajes del panel van en emitter.lang.
+    vault_texts = [note.content for note in vault.notes.values()]
+    lang = note_language(language, topic, vault_texts, ui=emitter.lang)
     try:
         result.gaps = await explore(
             topic=topic,
@@ -58,6 +61,7 @@ async def run_research(
             emitter=emitter,
             max_gaps=max_gaps,
             lang=lang,
+            pending_titles=pending_titles,
         )
         result.findings = await research(
             topic=topic,

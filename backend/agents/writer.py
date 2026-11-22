@@ -14,7 +14,7 @@ from datetime import UTC, datetime
 
 from agents.events import Emitter
 from agents.prompts import WRITER, WRITER_NO_SOURCES, WRITER_REVISION
-from agents.researcher import Finding
+from agents.researcher import Finding, vault_usage
 from app.contracts import Language, Proposal
 from app.i18n import NOTE_SECTION_MARKERS, language_instruction, tr
 from llm import LLMError, LLMResponse
@@ -100,7 +100,7 @@ async def draft_note(
     system += language_instruction(lang)
     user = (
         f"Tema de la investigación: {topic}\n"
-        f"Concepto: {title}\n\n"
+        f"Concepto: {title}{vault_usage(finding.gap)}\n\n"
         f"Resumen de la investigación:\n{finding.summary}\n\n"
         f"Fuentes (con su abstract):\n{evidence(finding)}\n\n"
         f"Notas existentes:\n" + "\n".join(f"- {t}" for t in titles)

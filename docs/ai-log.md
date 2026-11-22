@@ -143,3 +143,9 @@ Materia prima para la sección «Cómo se construyó con IA» del README. Apunta
 - **Qué funcionó:** `evals/report.py` simula SmartRoute con los resultados reales de cada caso: si la política manda la tarea al SLM y este falla, se cobra también el modelo grande (la escalada). Lo compara con usar siempre el grande y genera una sección lista para pegar en el README (ahorro, casos resueltos, escaladas y acierto por tarea). No llama a ningún modelo: solo lee el JSON que deja `evals.run`.
 - **Qué costó o falló:** ejecutar las evals necesita la clave de Groq, que el agente no puede leer (`.env`); lo lanza la persona.
 - **Qué cambiaría:** añadir casos de `answer_question` (Pregunta a tu bóveda) a las evals.
+
+### 2026-11-22 · Persona A (agente autónomo) · Cierre: README, GIF y guion del vídeo
+- **Prompt:** «Reanuda donde lo dejaste y termina el proyecto».
+- **Qué funcionó:** grabar la demo con Playwright (vídeo del navegador sin interfaz contra el servidor real en modo demo) y convertirla a GIF con ffmpeg y una paleta reducida: el GIF del README enseña la interfaz actual (bienvenida, marcador de SmartRoute, insignia de confianza y «Preguntar») sin pasar de 7 MB. El README recoge las siete historias y los aprendizajes de las pruebas reales, y `docs/guion-video.md` reparte los 5 minutos del vídeo.
+- **Qué costó o falló:** el grafo 3D gira y cambia casi todos los píxeles de cada fotograma, así que el GIF pesaba 17 MB; bajar a 6 fotogramas por segundo, 64 colores y acelerar ×1,4 lo dejó en 7 MB.
+- **Qué cambiaría:** un MP4 corto en lugar de GIF pesa diez veces menos, pero GitHub no lo reproduce dentro del README.

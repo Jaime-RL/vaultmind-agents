@@ -101,3 +101,9 @@ Materia prima para la sección «Cómo se construyó con IA» del README. Apunta
 - **Qué funcionó:** una insignia en la cabecera de cada tarjeta («✓ 5/5 respaldadas · corregida») que se ve sin abrir la nota. El color nunca va solo: lleva también icono y texto, para que se entienda con daltonismo. Reutiliza los colores de estado que ya tenía la interfaz (verde, ámbar, rojo). Comprobado con capturas de Playwright contra el servidor real en modo demo, no solo con tests.
 - **Qué costó o falló:** react-markdown muestra los avisos de Obsidian (`> [!warning]`) como una cita con el texto «[!warning]» literal. Se resolvió con un componente `blockquote` propio que detecta el marcador, sin añadir dependencias ni HTML sin sanear.
 - **Qué cambiaría:** el aviso se muestra como texto plano (pierde negritas o enlaces dentro del aviso); para avisos largos haría falta un plugin de remark.
+
+### 2026-11-22 · Persona A (agente autónomo) · Fase 4: SmartRoute en directo
+- **Prompt:** roadmap autónomo, fase 4 (frontend, para revisión de Iván).
+- **Qué funcionó:** un marcador flotante sobre el grafo con las llamadas resueltas por cada modelo, las escaladas y el ahorro frente a usar solo el grande. Sin cambiar contratos: el reparto sale de los `route_decision` en directo y el coste, de `/api/metrics?run_id=`, que ya se recargaba con cada decisión. La escalada tiene una animación corta que respeta `prefers-reduced-motion`.
+- **Qué costó o falló:** el evento `route_decision` no trae el coste, así que el ahorro va un paso por detrás de la decisión (llega con la métrica). Para el vídeo no se nota; si hiciera falta exactitud al instante, habría que añadir el coste al evento (cambio de contrato).
+- **Qué cambiaría:** nada para la entrega.

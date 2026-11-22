@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { getHealth } from './api/client'
 import { Tabs } from './components/Tabs'
 import { AgentsPanel } from './features/agents-panel/AgentsPanel'
+import { LiveSavings } from './features/live-savings/LiveSavings'
 import { ResearchForm } from './features/agents-panel/ResearchForm'
 import { useResearchRun } from './features/agents-panel/useResearchRun'
 import { GraphView } from './features/graph/GraphView'
@@ -69,6 +70,9 @@ export default function App() {
     `${run.state.routeDecisions.length}:${run.state.status}`,
   )
 
+  // Métricas SOLO de la investigación en curso, para el marcador de SmartRoute sobre el grafo.
+  const runMetrics = useMetrics(run.state.runId, `${run.state.routeDecisions.length}:${run.state.status}`)
+
   // Notas de la bóveda (por id y por título) para marcar los [[enlaces]] que ya existen.
   const existingNotes = useMemo(
     () =>
@@ -100,6 +104,9 @@ export default function App() {
             fitAll={run.state.status === 'finished'}
             onRetry={reloadVault}
           />
+          {run.state.runId && (
+            <LiveSavings decisions={run.state.routeDecisions} metrics={runMetrics} running={busy} />
+          )}
         </section>
         <aside className="workspace__side">
           <Tabs

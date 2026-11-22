@@ -816,3 +816,102 @@ code {
 .callout--success {
   border-left-color: var(--ok);
 }
+
+/* --- Marcador de SmartRoute sobre el grafo -------------------------------- */
+.live-savings {
+  position: absolute;
+  top: 2.4rem;
+  left: 1rem;
+  z-index: 2;
+  min-width: 210px;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: blur(4px);
+  font-size: 0.8rem;
+}
+.live-savings p {
+  margin: 0;
+}
+.live-savings__title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--muted);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.live-savings__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ok);
+  animation: live-blink 1.2s ease-in-out infinite;
+}
+.live-savings__split {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.4rem 0 !important;
+}
+.tier-chip {
+  padding: 0.05rem 0.45rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+}
+.tier-chip--slm {
+  color: var(--ok);
+}
+.tier-chip--large {
+  color: #388bfd; /* mismo azul que el anillo del modelo grande en el grafo */
+}
+.tier-chip--escalated {
+  color: var(--checking);
+  animation: escalate-pop 0.9s ease-out;
+}
+.live-savings__money {
+  display: flex;
+  flex-direction: column;
+}
+.live-savings__money strong {
+  font-size: 1.35rem;
+  color: var(--text);
+}
+.live-savings__money span {
+  color: var(--muted);
+}
+.live-savings__last {
+  margin-top: 0.35rem !important;
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  animation: fade-in 0.4s ease-out;
+}
+@keyframes live-blink {
+  50% {
+    opacity: 0.25;
+  }
+}
+@keyframes escalate-pop {
+  0% {
+    transform: scale(1.5);
+    background: color-mix(in srgb, var(--checking) 35%, transparent);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .live-savings__dot,
+  .tier-chip--escalated,
+  .live-savings__last {
+    animation: none;
+  }
+}

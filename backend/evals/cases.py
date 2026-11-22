@@ -179,8 +179,8 @@ def writer_case(case_id: str, title: str, summary: str) -> Case:
         invented = [link for link in links if link not in EXISTING_TITLES]
         if invented:
             return False, f"enlaces a notas que no existen: {invented}"
-        if len(links) < 2:
-            return False, f"solo {len(links)} enlaces"
+        # El prompt pide enlazar solo lo que tenga relación real («mejor ninguno que uno
+        # forzado»): ya no se exige un mínimo de enlaces, solo que no haya inventados.
         return True, f"{words} palabras, {len(set(links))} enlaces válidos"
 
     return Case(

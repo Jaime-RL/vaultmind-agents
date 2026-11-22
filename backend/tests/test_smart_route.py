@@ -108,7 +108,7 @@ async def test_escalates_when_slm_provider_fails():
 async def test_escalates_when_slm_returns_invalid_json():
     router, fake = make_router([reply("esto no es JSON"), reply('{"gaps": []}')])
 
-    outcome = await route(router, "find_gaps", validate=require_json_object("gaps"))
+    outcome = await route(router, "summarize_paper", validate=require_json_object("gaps"))
 
     assert [call.model for call in fake.calls] == ["small", "large"]
     assert outcome.response.content == '{"gaps": []}'
@@ -147,7 +147,7 @@ async def test_slm_cost_and_latency():
 async def test_escalation_pays_for_the_rejected_slm_answer():
     router, _ = make_router([reply("basura", 1000, 100), reply('{"a": 1}', 1000, 100)])
 
-    outcome = await route(router, "find_gaps", validate=require_json_object("a"))
+    outcome = await route(router, "summarize_paper", validate=require_json_object("a"))
 
     slm_wasted = 0.00011
     large = (1000 * 3.00 + 100 * 15.00) / 1_000_000
@@ -159,7 +159,7 @@ async def test_totals_show_savings_against_always_large():
 
     await route(router, "summarize_paper")  # SLM
     await route(router, "verify_claims")  # SLM
-    await route(router, "find_gaps")  # SLM falla → grande
+    await route(router, "summarize_paper")  # SLM falla → grande
     await route(router, "write_note")  # grande
 
     totals = router.totals()

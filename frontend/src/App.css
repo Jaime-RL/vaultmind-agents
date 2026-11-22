@@ -915,3 +915,88 @@ code {
     animation: none;
   }
 }
+
+/* --- Pregunta a tu bóveda --------------------------------------------------- */
+.ask-panel {
+  padding: 0.75rem 1rem;
+}
+.ask-panel__label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.ask-panel__row {
+  display: flex;
+  gap: 0.5rem;
+}
+.ask-panel__row input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+}
+.ask-panel__examples {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0.6rem 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.ask-panel__pending {
+  margin: 0.8rem 0;
+  color: var(--muted);
+}
+.ask-panel__history {
+  margin: 0.8rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.chip {
+  padding: 0.15rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.chip:hover,
+.chip:focus-visible {
+  border-color: var(--accent);
+}
+.chip--note {
+  color: var(--accent);
+}
+.answer {
+  margin-bottom: 0.8rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.answer__question {
+  margin: 0 0 0.4rem;
+  font-weight: 600;
+}
+.answer__citations {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0.5rem 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.answer__meta {
+  margin: 0.5rem 0 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+}

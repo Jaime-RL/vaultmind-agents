@@ -7,6 +7,8 @@
 // Solo hace falta VITE_API_URL para apuntar a un backend en otro origen
 // (por ejemplo, el frontend en local contra la URL pública).
 import type {
+  AskRequest,
+  AskResponse,
   Metrics,
   Proposal,
   ProposalAction,
@@ -69,3 +71,6 @@ export const resolveProposal = (id: string, action: ProposalAction['action']): P
 
 export const getMetrics = (runId?: string): Promise<Metrics> =>
   apiFetch<Metrics>(`/api/metrics${runId ? `?run_id=${encodeURIComponent(runId)}` : ''}`)
+
+export const askVault = (question: string): Promise<AskResponse> =>
+  post<AskResponse>('/api/ask', { question } satisfies AskRequest)

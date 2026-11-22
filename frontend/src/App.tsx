@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { getHealth } from './api/client'
 import { Tabs } from './components/Tabs'
 import { AgentsPanel } from './features/agents-panel/AgentsPanel'
+import { AskPanel } from './features/ask/AskPanel'
 import { LiveSavings } from './features/live-savings/LiveSavings'
 import { ResearchForm } from './features/agents-panel/ResearchForm'
 import { useResearchRun } from './features/agents-panel/useResearchRun'
@@ -43,8 +44,18 @@ export default function App() {
   const run = useResearchRun()
   const [tab, setTab] = useState('agents')
   const busy = run.state.status === 'starting' || run.state.status === 'running'
-  // La cámara del grafo se acerca a la última nota propuesta.
-  const focusId = run.state.proposed.at(-1)?.id
+  // Nota citada en «Preguntar» a la que vuela la cámara; se olvida al lanzar otra investigación.
+  const [askFocus, setAskFocus] = useState<string>()
+  // La cámara del grafo se acerca a la nota citada o, si no, a la última nota propuesta.
+  const focusId = askFocus ?? run.state.proposed.at(-1)?.id
+  const { start } = run
+  const startResearch = useCallback(
+    (topic: string) => {
+      setAskFocus(undefined)
+      start(topic)
+    },
+    [start],
+  )
 
   const { markResolved } = run
   const onResolved = useCallback(
@@ -89,7 +100,7 @@ export default function App() {
           <h1>VaultMind</h1>
           <p className="topbar__tagline">Agentes que investigan y hacen crecer tu bóveda de Obsidian</p>
         </div>
-        <ResearchForm busy={busy} onSubmit={run.start} />
+        <ResearchForm busy={busy} onSubmit={startResearch} />
         <p className={`status status--${status}`} role="status" aria-label="Estado del backend">
           {STATUS_LABEL[status]}
         </p>
@@ -101,7 +112,7 @@ export default function App() {
             state={vaultState}
             proposed={run.state.proposed}
             focusId={focusId}
-            fitAll={run.state.status === 'finished'}
+            fitAll={run.state.status === 'finished' && !askFocus}
             onRetry={reloadVault}
           />
           {run.state.runId && (
@@ -133,6 +144,11 @@ export default function App() {
                     onRetry={() => void proposals.reload()}
                   />
                 ),
+              },
+              {
+                id: 'ask',
+                label: 'Preguntar',
+                content: <AskPanel existing={existingNotes} onFocusNote={setAskFocus} />,
               },
               {
                 id: 'router',

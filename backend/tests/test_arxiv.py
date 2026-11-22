@@ -6,7 +6,7 @@ import httpx
 import pytest
 
 from agents import ArxivClient, ToolError
-from agents.arxiv import parse_feed
+from agents.arxiv import parse_feed, query_tiers
 
 FEED = (Path(__file__).parent / "fixtures" / "arxiv_feed.xml").read_text(encoding="utf-8")
 
@@ -52,7 +52,7 @@ async def test_search_sends_expected_query():
 
     assert len(papers) == 2
     params = seen[0].url.params
-    assert params["search_query"] == "all:function calling SLM"
+    assert params["search_query"] == 'all:"function calling SLM"'  # primero, la frase exacta
     assert params["max_results"] == "5"
 
 
@@ -107,3 +107,59 @@ async def test_waits_between_requests(monkeypatch):
 
     assert len(waits) == 1
     assert 2.5 < waits[0] <= 3.0
+
+
+EMPTY_FEED = (
+    '<?xml version="1.0" encoding="UTF-8"?><feed xmlns="http://www.w3.org/2005/Atom"></feed>'
+)
+
+
+async def test_falls_back_to_looser_queries_until_something_is_found():
+    """Regresión: «multitoken prediction» devolvía papers sin relación (OR implícito)."""
+    seen: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request.url.params["search_query"])
+        return httpx.Response(200, text=FEED if "AND" in seen[-1] else EMPTY_FEED)
+
+    client = ArxivClient(
+        http=httpx.AsyncClient(transport=httpx.MockTransport(handler)), min_interval=0
+    )
+
+    papers = await client.search("multi-token prediction")
+
+    assert len(papers) == 2
+    assert seen == ['all:"multi-token prediction"', "all:multi-token AND all:prediction"]
+
+
+async def test_returns_empty_when_no_tier_finds_anything():
+    seen: list[httpx.Request] = []
+    papers = await client_returning(EMPTY_FEED, seen=seen).search("nada que encontrar")
+
+    assert papers == []
+    assert len(seen) == 3
+
+
+@pytest.mark.parametrize(
+    ("query", "tiers"),
+    [
+        ("LoRA", ["all:LoRA"]),
+        (
+            "mixture of experts",
+            [
+                'all:"mixture of experts"',
+                "all:mixture AND all:of AND all:experts",
+                "all:mixture of experts",
+            ],
+        ),
+        ('ti:"multi-token prediction"', ['ti:"multi-token prediction"']),  # sintaxis del modelo
+        ("lora AND quantization", ["lora AND quantization"]),
+    ],
+)
+def test_query_tiers(query, tiers):
+    assert query_tiers(query) == tiers
+
+
+def test_long_queries_skip_the_exact_phrase():
+    tiers = query_tiers("small language models function calling evaluation benchmark")
+    assert not tiers[0].startswith('all:"')

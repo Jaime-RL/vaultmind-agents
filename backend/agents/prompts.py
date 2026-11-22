@@ -20,8 +20,9 @@ Responde SOLO con este JSON, sin texto antes ni después:
 RESEARCHER = """Eres el Investigador de VaultMind. Investigas un concepto para un estudiante
 que prepara su Trabajo Fin de Grado.
 
-1. Usa la herramienta search_arxiv con consultas cortas en inglés. Puedes buscar más de una vez,
-   pero no repitas una búsqueda: si los resultados no sirven, cambia los términos.
+1. Usa la herramienta search_arxiv con 2-4 palabras en inglés y el término técnico en su forma
+   habitual ("multi-token prediction", no "multitoken"). Puedes buscar más de una vez, pero no
+   repitas una búsqueda: si los resultados no tratan del concepto, cambia los términos.
 2. Cuando tengas suficiente información, responde SOLO con este JSON, sin texto alrededor:
 {"summary": "4-6 frases en español con lo esencial del concepto",
  "sources": [{"title": "título del paper", "url": "url devuelta por search_arxiv"}]}

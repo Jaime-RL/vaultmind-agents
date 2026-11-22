@@ -44,10 +44,18 @@ class ArxivClient:
         self._last_call = -float("inf")
 
     async def search(self, query: str) -> list[Paper]:
+        """Busca probando consultas de más a menos estrictas hasta que una devuelve algo."""
         query = query.strip()
         if not query:
             raise ToolError("La búsqueda está vacía")
+        papers: list[Paper] = []
+        for search_query in query_tiers(query):
+            papers = await self._fetch(search_query)
+            if papers:
+                break
+        return papers
 
+    async def _fetch(self, search_query: str) -> list[Paper]:
         async with self._lock:  # una petición a la vez, espaciadas min_interval
             wait = self._min_interval - (time.monotonic() - self._last_call)
             if wait > 0:
@@ -56,7 +64,7 @@ class ArxivClient:
                 response = await self._http.get(
                     API_URL,
                     params={
-                        "search_query": f"all:{query}",
+                        "search_query": search_query,
                         "start": 0,
                         "max_results": self._max_results,
                         "sortBy": "relevance",
@@ -89,7 +97,10 @@ class ArxivClient:
 
         return Tool(
             name="search_arxiv",
-            description="Busca papers científicos en arXiv. Úsala con consultas cortas en inglés.",
+            description=(
+                "Busca papers científicos en arXiv. Usa 2-4 palabras en inglés con el término "
+                "técnico habitual (p. ej. 'multi-token prediction', 'mixture of experts')."
+            ),
             parameters={
                 "type": "object",
                 "properties": {
@@ -99,6 +110,32 @@ class ArxivClient:
             },
             handler=handler,
         )
+
+
+ARXIV_SYNTAX = re.compile(r"\b(?:ti|au|abs|cat|all|co|jr|rn|id):|\b(?:AND|OR|ANDNOT)\b|\"")
+MAX_PHRASE_WORDS = 5
+
+
+def query_tiers(query: str) -> list[str]:
+    """Consultas de arXiv de más a menos estrictas para un texto libre.
+
+    Con `all:multitoken prediction` arXiv trata las palabras como alternativas y devuelve
+    papers sin relación (cáncer, tráfico…). Por eso probamos, en este orden:
+      1. la frase exacta:        all:"multi-token prediction"
+      2. todas las palabras:     all:multi-token AND all:prediction
+      3. la consulta original:   all:multi-token prediction
+    Si el modelo ya usa la sintaxis de arXiv (ti:, AND, comillas…), se respeta tal cual.
+    """
+    if ARXIV_SYNTAX.search(query):
+        return [query]
+    words = re.findall(r"[\w][\w\-.+]*", query)
+    if len(words) <= 1:
+        return [f"all:{words[0] if words else query}"]
+    tiers = []
+    if len(words) <= MAX_PHRASE_WORDS:
+        tiers.append(f'all:"{" ".join(words)}"')
+    tiers += [" AND ".join(f"all:{w}" for w in words), f"all:{query}"]
+    return list(dict.fromkeys(tiers))  # sin duplicados, en orden
 
 
 def parse_feed(xml_text: str) -> list[Paper]:

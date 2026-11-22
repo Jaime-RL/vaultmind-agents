@@ -132,6 +132,13 @@ class Source(Contract):
     url: str
 
 
+class ProposalReview(Contract):
+    claims: int = Field(ge=0)
+    supported: int = Field(ge=0)
+    issues: list[str]
+    revised: bool
+
+
 class Proposal(Contract):
     id: str
     run_id: str
@@ -143,10 +150,12 @@ class Proposal(Contract):
     model: str
     status: Literal["pending", "approved", "rejected"]
     created_at: datetime
+    review: ProposalReview | None = None
 
 
 class ProposalAction(Contract):
     action: Literal["approve", "reject"]
+    markdown: str | None = Field(default=None, min_length=1)
 
 
 # --- metrics.schema.json -------------------------------------------------------

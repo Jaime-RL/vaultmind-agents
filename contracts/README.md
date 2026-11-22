@@ -15,7 +15,7 @@ Estos esquemas JSON (draft 2020-12) son la **fuente de verdad** entre backend y 
 | `/api/research` | POST | `research.schema.json#/$defs/ResearchRequest` | `research.schema.json#/$defs/ResearchResponse` |
 | `/api/research/{run_id}/events` | GET (SSE) | — | Flujo de `events.schema.json` |
 | `/api/proposals` | GET | `?status=pending` (opcional) | `proposal.schema.json#/$defs/ProposalList` |
-| `/api/proposals/{id}` | POST | `proposal.schema.json#/$defs/ProposalAction` | `proposal.schema.json#/$defs/Proposal` |
+| `/api/proposals/{id}` | POST | `proposal.schema.json#/$defs/ProposalAction` (`markdown` opcional: aprobar una versión editada) | `proposal.schema.json#/$defs/Proposal` (con `review` del Revisor si lo hay) |
 | `/api/metrics` | GET | `?run_id=...` (opcional) | `metrics.schema.json` |
 
 ## Eventos SSE

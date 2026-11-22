@@ -27,7 +27,22 @@
         "agent": { "type": "string", "enum": ["explorer", "researcher", "writer", "reviewer", "system"] },
         "model": { "type": "string" },
         "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
-        "created_at": { "type": "string", "format": "date-time" }
+        "created_at": { "type": "string", "format": "date-time" },
+        "review": {
+          "description": "Resultado del Revisor. Ausente o null si la nota no se pudo revisar.",
+          "anyOf": [{ "$ref": "#/$defs/ProposalReview" }, { "type": "null" }]
+        }
+      }
+    },
+    "ProposalReview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["claims", "supported", "issues", "revised"],
+      "properties": {
+        "claims": { "type": "integer", "minimum": 0, "description": "Afirmaciones factuales de la nota." },
+        "supported": { "type": "integer", "minimum": 0, "description": "Cuántas respaldan el resumen y los abstracts." },
+        "issues": { "type": "array", "items": { "type": "string" }, "description": "Afirmaciones sin respaldo que encontró el Revisor." },
+        "revised": { "type": "boolean", "description": "true si el Redactor reescribió la nota tras la revisión." }
       }
     },
     "ProposalList": {
@@ -39,7 +54,11 @@
       "additionalProperties": false,
       "required": ["action"],
       "properties": {
-        "action": { "type": "string", "enum": ["approve", "reject"] }
+        "action": { "type": "string", "enum": ["approve", "reject"] },
+        "markdown": {
+          "description": "Solo con approve: versión editada por el usuario que sustituye a la propuesta.",
+          "anyOf": [{ "type": "string", "minLength": 1 }, { "type": "null" }]
+        }
       }
     }
   }

@@ -135,13 +135,20 @@ CASES = [
             model="large",
             status="pending",
             created_at=NOW,
+            review=c.ProposalReview(claims=5, supported=4, issues=["la cifra"], revised=True),
         ),
+    ),
+    (
+        c.ProposalReview,
+        "proposal.schema.json",
+        "ProposalReview",
+        c.ProposalReview(claims=3, supported=3, issues=[], revised=False),
     ),
     (
         c.ProposalAction,
         "proposal.schema.json",
         "ProposalAction",
-        c.ProposalAction(action="approve"),
+        c.ProposalAction(action="approve", markdown="# Editada"),
     ),
     (
         c.Metrics,

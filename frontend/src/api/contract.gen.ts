@@ -179,6 +179,33 @@ export interface Proposal {
   model: string
   status: 'pending' | 'approved' | 'rejected'
   created_at: string
+  /**
+   * Resultado del Revisor. Ausente o null si la nota no se pudo revisar.
+   */
+  review?: ProposalReview | null
+}
+/**
+ * This interface was referenced by `ProposalRoot`'s JSON-Schema
+ * via the `definition` "ProposalReview".
+ */
+
+export interface ProposalReview {
+  /**
+   * Afirmaciones factuales de la nota.
+   */
+  claims: number
+  /**
+   * Cuántas respaldan el resumen y los abstracts.
+   */
+  supported: number
+  /**
+   * Afirmaciones sin respaldo que encontró el Revisor.
+   */
+  issues: string[]
+  /**
+   * true si el Redactor reescribió la nota tras la revisión.
+   */
+  revised: boolean
 }
 /**
  * This interface was referenced by `ProposalRoot`'s JSON-Schema
@@ -187,6 +214,10 @@ export interface Proposal {
 
 export interface ProposalAction {
   action: 'approve' | 'reject'
+  /**
+   * Solo con approve: versión editada por el usuario que sustituye a la propuesta.
+   */
+  markdown?: string | null
 }
 
 export interface ResearchRequest {

@@ -83,3 +83,9 @@ Materia prima para la sección «Cómo se construyó con IA» del README. Apunta
 - **Qué funcionó:** probar en la URL pública con un tema real en lugar de fiarse de los tests verdes. Destapó un fallo que ningún test veía: arXiv trata `all:multitoken prediction` como palabras alternativas y devolvía papers de cáncer o de tráfico, así que el Investigador hacía bien en no citar nada. Contrastarlo con consultas directas a arXiv dio la solución: buscar primero la frase exacta y relajar la consulta solo si no hay resultados. También poner al Revisor antes de publicar y darle los abstracts como evidencia: una nota que dice «Qwen es de Baidu» ya no pasa porque el dato no está en ninguna fuente.
 - **Qué costó o falló:** los tests usaban siempre un arXiv falso que devolvía el paper correcto, así que la calidad de las búsquedas nunca se probaba. Y en la URL pública cualquiera podía aprobar notas en la bóveda compartida: se resolvió con una cookie anónima por visitante y notas aprobadas que viven solo en su grafo.
 - **Qué cambiaría:** incluir en las evals casos con la búsqueda real grabada (fixtures de respuestas de arXiv), no solo las respuestas del LLM.
+
+### 2026-11-22 · Persona A (agente autónomo) · Fase 1: contrato de la revisión
+- **Prompt:** roadmap autónomo (`docs/roadmap-autonomo.md`), fase 1.
+- **Qué funcionó:** juntar en una sola PR de `contracts/` los dos cambios de `Proposal` que necesitan las fases siguientes (la revisión y la edición antes de aprobar). Así Iván revisa el contrato una vez. Los dos campos son opcionales: los clientes y datos antiguos siguen siendo válidos.
+- **Qué costó o falló:** el test de deriva valida los ejemplos con `model_dump()`, que incluye los `None`; por eso los campos opcionales admiten `null` en el esquema (`anyOf` con `null`) en lugar de ser solo «no requeridos».
+- **Qué cambiaría:** nada por ahora.

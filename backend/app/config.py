@@ -56,6 +56,9 @@ class Settings(BaseSettings):
     max_runs_per_ip_per_day: int = 3
     # Usar la demo como respaldo (sin clave configurada o cupo agotado) en lugar de dar error.
     demo_fallback: bool = True
+    # URL pública: cada visitante (cookie anónima) ve y resuelve solo SUS propuestas, y lo que
+    # aprueba se guarda en la base de datos para él, sin escribir en la bóveda compartida.
+    public_mode: bool = False
 
     # Carpeta con el frontend compilado (dist/ de Vite). Si existe, FastAPI la sirve en "/"
     # junto a la API: en producción todo es un solo servicio, sin CORS. La define el Dockerfile.

@@ -1,6 +1,6 @@
 """Orquestador: encadena los agentes de una investigación y cierra con un evento final.
 
-Explorador → Investigador → Redactor → Revisor
+Explorador → Investigador → Redactor ⇄ Revisor
 
 Pase lo que pase, el flujo de eventos termina con `run_finished` o con `error`:
 la interfaz siempre sabe cuándo ha acabado la investigación.
@@ -10,12 +10,13 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
+from agents.editorial import write_and_review
 from agents.events import Emitter
 from agents.explorer import Gap, explore
 from agents.researcher import Finding, research
-from agents.reviewer import Review, review_notes
+from agents.reviewer import Review
 from agents.tools import Tool
-from agents.writer import ProposalCallback, write_notes
+from agents.writer import ProposalCallback
 from app.contracts import Proposal, RunStats
 from router import SmartRoute
 from vault import Vault
@@ -50,10 +51,10 @@ async def run_research(
         result.findings = await research(
             topic=topic, gaps=result.gaps, router=router, emitter=emitter, search_tool=search_tool
         )
-        # Cada nota se guarda (on_proposal) en cuanto se redacta y antes de emitir su
-        # node_proposed: la interfaz puede pedirla nada más recibir el evento, y si el
-        # Revisor falla después, las notas ya están a salvo.
-        result.proposals = await write_notes(
+        # Redactor y Revisor trabajan nota a nota: el Revisor actúa ANTES de publicar y, si
+        # la nota no se sostiene, el Redactor la corrige una vez (ver agents/editorial.py).
+        # Cada nota se guarda (on_proposal) antes de emitir su node_proposed.
+        editorial = await write_and_review(
             topic=topic,
             findings=result.findings,
             vault=vault,
@@ -61,9 +62,7 @@ async def run_research(
             emitter=emitter,
             on_proposal=on_proposal,
         )
-        result.reviews = await review_notes(
-            proposals=result.proposals, findings=result.findings, router=router, emitter=emitter
-        )
+        result.proposals, result.reviews = editorial.proposals, editorial.reviews
     except AssertionError:
         raise  # fallo de un test (p. ej. guion de FakeLLMClient agotado): que se vea
     except Exception as exc:  # noqa: BLE001 — cualquier fallo debe cerrar el flujo con 'error'

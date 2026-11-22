@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from agents.events import Emitter
 from agents.prompts import REVIEWER
 from agents.researcher import Finding
+from agents.writer import evidence, note_body
 from app.contracts import Proposal
 from llm import LLMError
 from router import SmartRoute, require_json_object
@@ -47,7 +48,10 @@ async def review_note(
     proposal: Proposal, finding: Finding | None, router: SmartRoute, emitter: Emitter
 ) -> Review:
     await emitter.tool_call("reviewer", "verify_claims", {"proposal_id": proposal.id})
-    summary = finding.summary if finding else "(sin resumen)"
+    if finding is not None:
+        proof = f"Resumen de la investigación:\n{finding.summary}\n\nFuentes:\n{evidence(finding)}"
+    else:
+        proof = "(sin evidencia)"
     outcome = await router.complete(
         run_id=emitter.run_id,
         agent="reviewer",
@@ -56,7 +60,7 @@ async def review_note(
             {"role": "system", "content": REVIEWER},
             {
                 "role": "user",
-                "content": f"Resumen de la investigación:\n{summary}\n\nNota:\n{proposal.markdown}",
+                "content": f"EVIDENCIA\n{proof}\n\nNOTA\n{note_body(proposal.markdown)}",
             },
         ],
         validate=require_json_object("claims", "supported"),
@@ -98,3 +102,13 @@ def unique_issues(raw, limit: int = 5) -> list[str]:
         if text and text.lower() not in {r.lower() for r in result}:
             result.append(text)
     return result[:limit]
+
+
+MIN_SUPPORT = 0.8  # por debajo, el Redactor reescribe la nota una vez
+
+
+def needs_revision(review: Review | None) -> bool:
+    """¿Merece la pena reescribir? Solo si el Revisor contó afirmaciones y falla el respaldo."""
+    if review is None or review.claims == 0:
+        return False
+    return review.supported / review.claims < MIN_SUPPORT

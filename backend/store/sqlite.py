@@ -61,6 +61,7 @@ class RunRecord:
     finished_at: str | None
     client_ip: str | None = None
     mode: RunMode = "real"
+    owner: str | None = None
 
 
 class Store:
@@ -85,6 +86,8 @@ class Store:
                 self._db.execute("ALTER TABLE runs ADD COLUMN client_ip TEXT")
             if "mode" not in columns:
                 self._db.execute("ALTER TABLE runs ADD COLUMN mode TEXT NOT NULL DEFAULT 'real'")
+            if "owner" not in columns:  # sesión anónima del visitante (modo público)
+                self._db.execute("ALTER TABLE runs ADD COLUMN owner TEXT")
 
     def close(self) -> None:
         self._db.close()
@@ -92,13 +95,18 @@ class Store:
     # --- Investigaciones -------------------------------------------------------
 
     def create_run(
-        self, run_id: str, topic: str, client_ip: str | None = None, mode: RunMode = "real"
+        self,
+        run_id: str,
+        topic: str,
+        client_ip: str | None = None,
+        mode: RunMode = "real",
+        owner: str | None = None,
     ) -> None:
         with self._db:
             self._db.execute(
-                "INSERT INTO runs (id, topic, status, created_at, client_ip, mode) "
-                "VALUES (?, ?, 'running', ?, ?, ?)",
-                (run_id, topic, now(), client_ip, mode),
+                "INSERT INTO runs (id, topic, status, created_at, client_ip, mode, owner) "
+                "VALUES (?, ?, 'running', ?, ?, ?, ?)",
+                (run_id, topic, now(), client_ip, mode, owner),
             )
 
     def count_runs_today(self, mode: RunMode = "real", client_ip: str | None = None) -> int:
@@ -152,7 +160,7 @@ class Store:
                 ),
             )
 
-    def delete_pending_demo_proposals(self) -> int:
+    def delete_pending_demo_proposals(self, owner: str | None = None) -> int:
         """Borra las propuestas pendientes de investigaciones de demo.
 
         Cada demo propone las mismas 3 notas: sin esto se acumularían duplicadas en
@@ -161,7 +169,8 @@ class Store:
         with self._db:
             cursor = self._db.execute(
                 "DELETE FROM proposals WHERE status = 'pending' AND run_id IN "
-                "(SELECT id FROM runs WHERE mode = 'demo')"
+                "(SELECT id FROM runs WHERE mode = 'demo' AND owner IS ?)",
+                (owner,),  # solo las demos del mismo visitante: no borra las de otros
             )
         return cursor.rowcount
 
@@ -171,14 +180,28 @@ class Store:
         ).fetchone()
         return self._to_proposal(row) if row else None
 
-    def list_proposals(self, status: str | None = None) -> list[Proposal]:
-        query = "SELECT data, status FROM proposals"
-        params: tuple = ()
+    def list_proposals(self, status: str | None = None, owner: str | None = None) -> list[Proposal]:
+        """Propuestas, las más recientes primero. Con `owner`, solo las de ese visitante."""
+        query = "SELECT p.data, p.status FROM proposals p"
+        conditions, params = [], []
+        if owner is not None:
+            query += " JOIN runs r ON r.id = p.run_id"
+            conditions.append("r.owner = ?")
+            params.append(owner)
         if status is not None:
-            query += " WHERE status = ?"
-            params = (status,)
-        rows = self._db.execute(query + " ORDER BY created_at DESC, id", params).fetchall()
+            conditions.append("p.status = ?")
+            params.append(status)
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
+        rows = self._db.execute(query + " ORDER BY p.created_at DESC, p.id", params).fetchall()
         return [self._to_proposal(row) for row in rows]
+
+    def proposal_owner(self, proposal_id: str) -> str | None:
+        row = self._db.execute(
+            "SELECT r.owner FROM proposals p JOIN runs r ON r.id = p.run_id WHERE p.id = ?",
+            (proposal_id,),
+        ).fetchone()
+        return row["owner"] if row else None
 
     def set_proposal_status(
         self, proposal_id: str, status: str, file_path: str | None = None

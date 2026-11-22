@@ -15,6 +15,7 @@ import unicodedata
 from collections import Counter
 from dataclasses import dataclass
 
+from app.i18n import _MARKERS
 from vault.parser import Vault
 
 K1, B = 1.5, 0.75  # parámetros habituales de BM25
@@ -32,6 +33,31 @@ STOPWORDS = frozenset({
 # fmt: on
 
 
+# Palabras vacías también en inglés, francés, alemán y portugués (las de la detección de
+# idioma), más verbos de pregunta frecuentes que no aportan nada a la búsqueda.
+ALL_STOPWORDS = (
+    STOPWORDS
+    | set().union(*_MARKERS.values())
+    | {
+        "funciona",
+        "function",
+        "works",
+        "work",
+        "fonctionne",
+        "funktioniert",
+        "explain",
+        "explica",
+        "explique",
+        "erklare",
+        "sei",
+        "sais",
+        "know",
+        "weiss",
+    }
+)
+STEM_LENGTH = 4
+
+
 @dataclass(frozen=True)
 class Hit:
     note_id: str
@@ -43,16 +69,31 @@ def tokenize(text: str) -> list[str]:
     """Minúsculas, sin tildes ni signos, sin palabras vacías. «Función» y «funcion» coinciden."""
     text = unicodedata.normalize("NFKD", text.lower())
     text = "".join(c for c in text if not unicodedata.combining(c))
-    return [w for w in re.findall(r"[a-z0-9]+", text) if w not in STOPWORDS and len(w) > 1]
+    return [w for w in re.findall(r"[a-z0-9]+", text) if w not in ALL_STOPWORDS and len(w) > 1]
+
+
+def stem(word: str) -> str:
+    """Raíz muy simple: las 4 primeras letras. Une palabras emparentadas entre idiomas
+    («routing», «routage» → «rout»; «modelos», «modèles», «Modelle», «models» → «mode»)."""
+    return word[:STEM_LENGTH] if len(word) > STEM_LENGTH else word
 
 
 def search(vault: Vault, query: str, k: int = 5) -> list[Hit]:
-    terms = set(tokenize(query))
+    """Las k notas más relevantes. Primero por palabras exactas; si no hay ninguna (p. ej.
+    una pregunta en francés sobre notas escritas en español), por raíces."""
+    hits = _bm25(vault, query, k, lambda words: words)
+    if hits:
+        return hits
+    return _bm25(vault, query, k, lambda words: [stem(w) for w in words])
+
+
+def _bm25(vault: Vault, query: str, k: int, normalize) -> list[Hit]:
+    terms = set(normalize(tokenize(query)))
     if not terms or not vault.notes:
         return []
 
     docs = {
-        note_id: Counter(tokenize(note.title) * TITLE_WEIGHT + tokenize(note.content))
+        note_id: Counter(normalize(tokenize(note.title) * TITLE_WEIGHT + tokenize(note.content)))
         for note_id, note in vault.notes.items()
     }
     lengths = {note_id: sum(tf.values()) for note_id, tf in docs.items()}

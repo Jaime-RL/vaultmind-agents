@@ -184,3 +184,30 @@ def test_model_failure_is_a_502(vault_dir, make_router):
     with client:
         response = client.post("/api/ask", json={"question": "¿Qué es LoRA?"})
     assert response.status_code == 502
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "Comment fonctionne le routage de modèles ?",
+        "Wie funktioniert das Routing von Modellen?",
+        "Como funciona o roteamento de modelos?",
+    ],
+)
+def test_questions_in_other_languages_find_spanish_notes(tmp_path, question):
+    """Regresión (URL pública): una pregunta en francés no encontraba nada en una bóveda
+    escrita en español, porque la búsqueda solo comparaba palabras exactas."""
+    (tmp_path / "Routing de modelos.md").write_text(
+        "El routing decide qué modelo atiende cada petición.", encoding="utf-8"
+    )
+    (tmp_path / "ERA5.md").write_text("Reanálisis climático horario.", encoding="utf-8")
+
+    hits = search(parse_vault(tmp_path), question)
+
+    assert hits and hits[0].note_id == "Routing de modelos"
+
+
+def test_exact_matches_win_over_stems(vault):
+    # Con coincidencias exactas no se usan raíces: «LoRA» no arrastra notas que solo
+    # compartan las 4 primeras letras.
+    assert [h.note_id for h in search(vault, "LoRA")] == ["modelos/LoRA"]

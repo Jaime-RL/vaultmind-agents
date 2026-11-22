@@ -107,3 +107,9 @@ Materia prima para la sección «Cómo se construyó con IA» del README. Apunta
 - **Qué funcionó:** un marcador flotante sobre el grafo con las llamadas resueltas por cada modelo, las escaladas y el ahorro frente a usar solo el grande. Sin cambiar contratos: el reparto sale de los `route_decision` en directo y el coste, de `/api/metrics?run_id=`, que ya se recargaba con cada decisión. La escalada tiene una animación corta que respeta `prefers-reduced-motion`.
 - **Qué costó o falló:** el evento `route_decision` no trae el coste, así que el ahorro va un paso por detrás de la decisión (llega con la métrica). Para el vídeo no se nota; si hiciera falta exactitud al instante, habría que añadir el coste al evento (cambio de contrato).
 - **Qué cambiaría:** nada para la entrega.
+
+### 2026-11-22 · Persona A (agente autónomo) · Fase 5a: contrato de «Pregunta a tu bóveda»
+- **Prompt:** roadmap autónomo, fase 5.
+- **Qué funcionó:** el roadmap proponía una respuesta en streaming (SSE), pero SmartRoute decide si escalar validando la respuesta COMPLETA del SLM (que cite notas reales). Mostrar en directo una respuesta que luego se descarta sería confuso, así que el contrato es una petición/respuesta JSON y el efecto de escritura se hace en el frontend. La respuesta incluye qué modelo respondió, si escaló y el coste: la pregunta también enseña SmartRoute.
+- **Qué costó o falló:** nada.
+- **Qué cambiaría:** si las respuestas fueran largas, streaming del modelo grande solo después de escalar.

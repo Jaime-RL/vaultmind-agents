@@ -150,6 +150,20 @@ CASES = [
         "ProposalAction",
         c.ProposalAction(action="approve", markdown="# Editada"),
     ),
+    (c.AskRequest, "ask.schema.json", "AskRequest", c.AskRequest(question="¿Qué es LoRA?")),
+    (
+        c.AskResponse,
+        "ask.schema.json",
+        "AskResponse",
+        c.AskResponse(
+            answer="LoRA ajusta modelos con matrices de bajo rango [[LoRA]].",
+            citations=[c.AskCitation(id="modelos/LoRA", title="LoRA")],
+            model="small",
+            tier="slm",
+            escalated=False,
+            cost_usd=0.0001,
+        ),
+    ),
     (
         c.Metrics,
         "metrics.schema.json",

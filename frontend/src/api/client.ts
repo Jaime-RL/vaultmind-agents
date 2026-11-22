@@ -9,6 +9,8 @@
 import type {
   AskRequest,
   AskResponse,
+  ContentLanguage,
+  Language,
   Metrics,
   Proposal,
   ProposalAction,
@@ -56,8 +58,17 @@ export const getHealth = (): Promise<Health> => apiFetch<Health>('/api/health')
 
 export const getVault = (): Promise<VaultGraph> => apiFetch<VaultGraph>('/api/vault')
 
-export const startResearch = (topic: string): Promise<ResearchResponse> =>
-  post<ResearchResponse>('/api/research', { topic } satisfies ResearchRequest)
+/** `language`: idioma de las notas (auto = el del tema); `uiLanguage`: el de los mensajes. */
+export const startResearch = (
+  topic: string,
+  language: ContentLanguage = 'auto',
+  uiLanguage: Language = 'es',
+): Promise<ResearchResponse> =>
+  post<ResearchResponse>('/api/research', {
+    topic,
+    language,
+    ui_language: uiLanguage,
+  } satisfies ResearchRequest)
 
 /** URL del flujo SSE de una investigación (la abre EventSource en src/api/events.ts). */
 export const researchEventsUrl = (runId: string): string =>
@@ -80,5 +91,8 @@ export const resolveProposal = (
 export const getMetrics = (runId?: string): Promise<Metrics> =>
   apiFetch<Metrics>(`/api/metrics${runId ? `?run_id=${encodeURIComponent(runId)}` : ''}`)
 
-export const askVault = (question: string): Promise<AskResponse> =>
-  post<AskResponse>('/api/ask', { question } satisfies AskRequest)
+export const askVault = (
+  question: string,
+  language: ContentLanguage = 'auto',
+): Promise<AskResponse> =>
+  post<AskResponse>('/api/ask', { question, language } satisfies AskRequest)

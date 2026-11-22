@@ -1,6 +1,7 @@
-import { Component, lazy, Suspense, useMemo, type ReactNode } from 'react'
+import { Component, lazy, Suspense, useMemo, type ContextType, type ReactNode } from 'react'
 import type { VaultGraph } from '../../api/contract.gen'
-import { PROPOSED_COLOR, TIER_COLORS, TIER_LABELS } from './colors'
+import { I18nContext, useI18n } from '../../i18n/context'
+import { PROPOSED_COLOR, TIER_COLORS } from './colors'
 import { buildGraphData, type ProposedNode } from './graphData'
 import type { VaultState } from './useVaultGraph'
 
@@ -10,6 +11,9 @@ const VaultGraph3D = lazy(() => import('./VaultGraph3D'))
 // Si WebGL falla (navegador antiguo, GPU desactivada), mostramos un aviso en lugar
 // de dejar la pantalla en blanco. Los error boundaries solo existen como clase.
 class GraphErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  // Una clase no puede usar hooks: lee el idioma del contexto así.
+  static contextType = I18nContext
+  declare context: ContextType<typeof I18nContext>
   state = { failed: false }
 
   static getDerivedStateFromError() {
@@ -20,7 +24,7 @@ class GraphErrorBoundary extends Component<{ children: ReactNode }, { failed: bo
     if (this.state.failed) {
       return (
         <p className="graph-message graph-message--error" role="alert">
-          No se pudo dibujar el grafo 3D. Comprueba que tu navegador tiene WebGL activado.
+          {this.context.t('graph.webgl')}
         </p>
       )
     }
@@ -37,20 +41,21 @@ interface Props {
 }
 
 export function GraphView({ state, proposed = [], focusId, fitAll, onRetry }: Props) {
+  const { t } = useI18n()
   if (state.status === 'loading') {
     return (
       <p className="graph-message" role="status">
-        Cargando la bóveda…
+        {t('graph.loading')}
       </p>
     )
   }
   if (state.status === 'error') {
     return (
       <div className="graph-message graph-message--error" role="alert">
-        <p>No se pudo cargar la bóveda: {state.message}</p>
+        <p>{t('graph.error', { message: state.message })}</p>
         {onRetry && (
           <button type="button" className="button" onClick={onRetry}>
-            Reintentar
+            {t('review.retry')}
           </button>
         )}
       </div>
@@ -59,7 +64,7 @@ export function GraphView({ state, proposed = [], focusId, fitAll, onRetry }: Pr
   if (state.vault.nodes.length === 0) {
     return (
       <p className="graph-message" role="status">
-        La bóveda está vacía: añade notas Markdown a la carpeta de la bóveda para verlas aquí.
+        {t('graph.empty')}
       </p>
     )
   }
@@ -79,15 +84,16 @@ function ReadyGraph({
 }) {
   const data = useMemo(() => buildGraphData(vault, proposed), [vault, proposed])
   const pending = proposed.filter((p) => p.status === 'pending').length
+  const { t, tn } = useI18n()
 
   return (
     <div className="graph">
       <p className="graph__summary">
-        {vault.nodes.length} notas · {vault.links.length} enlaces
-        {pending > 0 && ` · ${pending} ${pending === 1 ? 'propuesta' : 'propuestas'}`}
+        {t('graph.summary', { notes: vault.nodes.length, links: vault.links.length })}
+        {pending > 0 && ` · ${tn('graph.proposals', pending)}`}
       </p>
       <GraphErrorBoundary>
-        <Suspense fallback={<p className="graph-message">Preparando el grafo 3D…</p>}>
+        <Suspense fallback={<p className="graph-message">{t('graph.preparing')}</p>}>
           <VaultGraph3D data={data} focusId={focusId} fitAll={fitAll} />
         </Suspense>
       </GraphErrorBoundary>
@@ -97,21 +103,22 @@ function ReadyGraph({
 }
 
 function Legend() {
+  const { t } = useI18n()
   return (
-    <aside className="legend" aria-label="Leyenda del grafo">
+    <aside className="legend" aria-label={t('graph.legend')}>
       <span className="legend__item">
         <span className="legend__dot legend__dot--note" />
-        Nota de tu bóveda
+        {t('graph.legend.note')}
       </span>
       <span className="legend__item">
         <span className="legend__dot" style={{ background: PROPOSED_COLOR }} />
-        Nota propuesta
+        {t('graph.legend.proposed')}
       </span>
-      <span className="legend__title">Anillo = modelo que la escribió</span>
+      <span className="legend__title">{t('graph.legend.ring')}</span>
       {(['slm', 'large'] as const).map((tier) => (
         <span key={tier} className="legend__item">
           <span className="legend__ring" style={{ borderColor: TIER_COLORS[tier] }} />
-          {TIER_LABELS[tier]}
+          {t(`tier.${tier}`)}
         </span>
       ))}
     </aside>

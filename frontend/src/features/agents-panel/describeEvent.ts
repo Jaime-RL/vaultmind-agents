@@ -1,29 +1,34 @@
 import type { AgentEvent } from '../../api/contract.gen'
+import { makeI18n, type I18n } from '../../i18n/context'
 
 /**
  * Texto legible de una herramienta, para que el panel diga «Buscando en arXiv…»
  * en lugar de «search_arxiv». Las herramientas desconocidas se muestran tal cual:
  * si A añade una nueva, el panel sigue funcionando.
  */
-export function describeToolCall(tool: string, args: Record<string, unknown>): string {
+/** Qué está haciendo una herramienta, en el idioma de la interfaz. */
+export function describeToolCall(
+  tool: string,
+  args: Record<string, unknown>,
+  t: I18n['t'] = makeI18n('es').t,
+): string {
   const query = typeof args.query === 'string' ? args.query : undefined
   switch (tool) {
     case 'search_arxiv':
-      return query ? `Buscando en arXiv: «${query}»` : 'Buscando en arXiv…'
+      return query ? t('tool.arxiv', { query }) : t('tool.arxiv.noQuery')
     case 'search_semantic_scholar':
-      return query ? `Buscando en Semantic Scholar: «${query}»` : 'Buscando en Semantic Scholar…'
+      return query ? t('tool.s2', { query }) : t('tool.s2.noQuery')
     case 'find_gaps':
-      return 'Buscando conceptos de la bóveda que aún no tienen nota…'
+      return t('tool.findGaps')
     case 'verify_claims':
-      return 'Verificando las afirmaciones de la nota frente a sus fuentes…'
+      return t('tool.verify')
     case 'read_note':
-      return typeof args.note === 'string' ? `Leyendo la nota «${args.note}»` : 'Leyendo una nota…'
+      return typeof args.note === 'string' ? t('tool.readNote', { note: args.note }) : t('tool.readNote.noNote')
     default:
-      return `Usando la herramienta ${tool}…`
+      return t('tool.other', { tool })
   }
 }
 
-/** Nombre corto del modelo: «qwen/qwen-2.5-7b-instruct» → «qwen-2.5-7b» (el completo va en el title). */
 export function shortModel(model: string): string {
   return (model.split('/').at(-1) ?? model).replace(/-instruct$/, '')
 }

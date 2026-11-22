@@ -46,7 +46,11 @@ async def start_research(
     """Lanza una investigación en segundo plano y devuelve su run_id al momento."""
     try:
         run_id = await services.runs.start(
-            body.topic.strip(), client_ip=client_ip(request), owner=owner_of(request, settings)
+            body.topic.strip(),
+            client_ip=client_ip(request),
+            owner=owner_of(request, settings),
+            language=body.language,
+            ui_language=body.ui_language,
         )
     except (TooManyRunsError, DailyQuotaExceededError) as exc:
         raise HTTPException(status_code=429, detail=str(exc)) from exc

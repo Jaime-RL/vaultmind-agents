@@ -29,7 +29,7 @@ describe('AskPanel', () => {
     await userEvent.type(screen.getByLabelText(/Pregunta a tu bóveda/), '¿Qué es LoRA?')
     await userEvent.click(screen.getByRole('button', { name: 'Preguntar' }))
 
-    expect(ask).toHaveBeenCalledWith('¿Qué es LoRA?')
+    expect(ask).toHaveBeenCalledWith('¿Qué es LoRA?', 'auto')
     expect(await screen.findByText(/congela los pesos/)).toBeInTheDocument()
     expect(onFocusNote).toHaveBeenCalledWith('modelos/LoRA')
     expect(screen.getByText(/SLM · gpt-oss-20b/)).toBeInTheDocument()

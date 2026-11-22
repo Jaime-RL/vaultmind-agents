@@ -1,6 +1,9 @@
 import { useState, type FormEvent } from 'react'
 import { ApiError, askVault } from '../../api/client'
-import type { AskResponse } from '../../api/contract.gen'
+import type { AskResponse, ContentLanguage } from '../../api/contract.gen'
+import { ContentLanguageSelect } from '../../components/LanguageSelect'
+import { useI18n } from '../../i18n/context'
+import { LANGUAGE_LABELS } from '../../i18n/messages'
 import { NoteMarkdown } from '../review/NoteMarkdown'
 import { describeModel } from './describeModel'
 import { useTypewriter } from './useTypewriter'
@@ -14,14 +17,10 @@ interface Props {
   existing: Set<string>
   /** Al pulsar una cita: la cámara del grafo vuela a esa nota. */
   onFocusNote: (noteId: string) => void
-  ask?: (question: string) => Promise<AskResponse>
+  ask?: (question: string, language: ContentLanguage) => Promise<AskResponse>
 }
 
-const EXAMPLES = [
-  '¿Qué es LoRA?',
-  '¿Qué datos climáticos uso?',
-  '¿Cómo funciona el routing de modelos?',
-]
+const EXAMPLE_KEYS = ['ask.example1', 'ask.example2', 'ask.example3'] as const
 
 /** «Pregunta a tu bóveda»: responde con tus notas y las cita; cada cita lleva a su nodo. */
 export function AskPanel({ existing, onFocusNote, ask = askVault }: Props) {
@@ -29,6 +28,9 @@ export function AskPanel({ existing, onFocusNote, ask = askVault }: Props) {
   const [history, setHistory] = useState<Exchange[]>([])
   const [pending, setPending] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // Idioma de la respuesta: «auto» = el idioma en que se pregunta.
+  const [language, setLanguage] = useState<ContentLanguage>('auto')
+  const { t } = useI18n()
 
   const submit = async (text: string) => {
     const q = text.trim()
@@ -36,12 +38,12 @@ export function AskPanel({ existing, onFocusNote, ask = askVault }: Props) {
     setPending(q)
     setError(null)
     try {
-      const response = await ask(q)
+      const response = await ask(q, language)
       setHistory((h) => [{ question: q, response }, ...h])
       setQuestion('')
       if (response.citations[0]) onFocusNote(response.citations[0].id)
     } catch (e) {
-      setError(e instanceof ApiError || e instanceof Error ? e.message : 'Error desconocido')
+      setError(e instanceof ApiError || e instanceof Error ? e.message : t('error.unknown'))
     } finally {
       setPending(null)
     }
@@ -56,29 +58,30 @@ export function AskPanel({ existing, onFocusNote, ask = askVault }: Props) {
     <div className="ask-panel">
       <form className="ask-panel__form" onSubmit={onSubmit}>
         <label htmlFor="ask-question" className="ask-panel__label">
-          Pregunta a tu bóveda: responde con tus notas y te dice cuáles ha usado.
+          {t('ask.label')}
         </label>
         <div className="ask-panel__row">
           <input
             id="ask-question"
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
-            placeholder="¿Qué sé sobre…?"
+            placeholder={t('ask.placeholder')}
             maxLength={500}
             disabled={pending !== null}
           />
+          <ContentLanguageSelect value={language} onChange={setLanguage} disabled={pending !== null} />
           <button
             type="submit"
             className="button button--primary"
             disabled={pending !== null || question.trim().length < 3}
           >
-            Preguntar
+            {t('ask.submit')}
           </button>
         </div>
         {history.length === 0 && !pending && (
           <p className="ask-panel__examples">
-            Prueba:{' '}
-            {EXAMPLES.map((example) => (
+            {t('ask.try')}{' '}
+            {EXAMPLE_KEYS.map((key) => t(key)).map((example) => (
               <button
                 key={example}
                 type="button"
@@ -94,12 +97,12 @@ export function AskPanel({ existing, onFocusNote, ask = askVault }: Props) {
 
       {pending && (
         <p className="ask-panel__pending" role="status">
-          Buscando en tus notas: «{pending}»…
+          {t('ask.pending', { question: pending })}
         </p>
       )}
       {error && (
         <p className="notice notice--error" role="alert">
-          No pude responder: {error}
+          {t('ask.error', { message: error })}
         </p>
       )}
 
@@ -126,6 +129,7 @@ interface CardProps {
 }
 
 function AnswerCard({ exchange, existing, animate, onFocusNote }: CardProps) {
+  const { t } = useI18n()
   const { question, response } = exchange
   const typed = useTypewriter(response.answer)
   const text = animate ? typed : response.answer
@@ -135,13 +139,13 @@ function AnswerCard({ exchange, existing, animate, onFocusNote }: CardProps) {
       <NoteMarkdown markdown={text} existing={existing} />
       {response.citations.length > 0 && (
         <p className="answer__citations">
-          <span>Notas usadas:</span>
+          <span>{t('ask.used')}</span>
           {response.citations.map((citation) => (
             <button
               key={citation.id}
               type="button"
               className="chip chip--note"
-              title="Ver en el grafo"
+              title={t('ask.showInGraph')}
               onClick={() => onFocusNote(citation.id)}
             >
               {citation.title}
@@ -149,7 +153,10 @@ function AnswerCard({ exchange, existing, animate, onFocusNote }: CardProps) {
           ))}
         </p>
       )}
-      <p className="answer__meta">{describeModel(response)}</p>
+      <p className="answer__meta">
+        {describeModel(response, t)}
+        {response.language && <> · {LANGUAGE_LABELS[response.language]}</>}
+      </p>
     </li>
   )
 }

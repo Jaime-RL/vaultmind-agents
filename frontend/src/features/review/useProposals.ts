@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ApiError, getProposals, resolveProposal } from '../../api/client'
 import type { Proposal } from '../../api/contract.gen'
+import { useI18n } from '../../i18n/context'
 
 export type ProposalsState =
   | { status: 'loading' }
@@ -26,6 +27,7 @@ export function useProposals({ refreshKey, onResolved }: Options) {
   // Id de la propuesta con una petición en curso (para desactivar sus botones).
   const [busyId, setBusyId] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
+  const { t } = useI18n()
 
   const fetchPending = useCallback(
     () =>
@@ -66,16 +68,16 @@ export function useProposals({ refreshKey, onResolved }: Options) {
       } catch (error) {
         // 409 = otra pestaña (u otra persona) ya la resolvió: recargamos la lista.
         if (error instanceof ApiError && error.status === 409) {
-          setActionError('Esta nota ya se había revisado. Lista actualizada.')
+          setActionError(t('review.alreadyResolved'))
           await load()
         } else {
-          setActionError(error instanceof Error ? error.message : 'No se pudo guardar la decisión.')
+          setActionError(error instanceof Error ? error.message : t('review.saveError'))
         }
       } finally {
         setBusyId(null)
       }
     },
-    [load, onResolved],
+    [load, onResolved, t],
   )
 
   return { state, busyId, actionError, resolve, reload: load }

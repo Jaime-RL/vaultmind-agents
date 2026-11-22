@@ -10,7 +10,8 @@
 from dataclasses import dataclass
 
 from agents.prompts import ASKER
-from app.contracts import AskCitation, AskResponse
+from app.contracts import AskCitation, AskResponse, ContentLanguage
+from app.i18n import language_instruction, resolve_language, tr
 from llm import LLMError, LLMResponse
 from router import SmartRoute
 from vault import Vault
@@ -20,10 +21,7 @@ from vault.search import Hit, search
 MAX_NOTES = 5
 MAX_NOTE_CHARS = 1500
 
-NO_NOTES = (
-    "No encuentro nada sobre eso en tu bóveda. Puedes investigarlo con el buscador de arriba "
-    "y aprobar las notas que te convenzan."
-)
+NO_NOTES = tr("es", "ask.no_notes")
 
 
 @dataclass(frozen=True)
@@ -62,17 +60,30 @@ def require_citation(context: AskContext):
 
 
 async def answer_question(
-    *, question: str, vault: Vault, router: SmartRoute | None, run_id: str
+    *,
+    question: str,
+    vault: Vault,
+    router: SmartRoute | None,
+    run_id: str,
+    language: ContentLanguage = "auto",
 ) -> AskResponse:
+    """`language`: idioma de la respuesta; con «auto», el de la pregunta (o español)."""
+    lang = resolve_language(language, question)
     context = context_for(vault, question)
     if not context.hits:
         return AskResponse(
-            answer=NO_NOTES, citations=[], model=None, tier=None, escalated=False, cost_usd=0.0
+            answer=tr(lang, "ask.no_notes"),
+            citations=[],
+            model=None,
+            tier=None,
+            escalated=False,
+            cost_usd=0.0,
+            language=lang,
         )
     if router is None:
         # Sin modelo configurado (o con el cupo agotado): al menos señalamos dónde mirar.
         links = ", ".join(f"[[{h.title}]]" for h in context.hits[:3])
-        answer = f"Ahora no puedo redactar una respuesta, pero estas notas tratan el tema: {links}."
+        answer = tr(lang, "ask.no_llm", links=links)
         return AskResponse(
             answer=answer,
             citations=cited(answer, context),
@@ -80,6 +91,7 @@ async def answer_question(
             tier=None,
             escalated=False,
             cost_usd=0.0,
+            language=lang,
         )
 
     notes = "\n\n".join(
@@ -90,7 +102,7 @@ async def answer_question(
         agent="researcher",
         task="answer_question",
         messages=[
-            {"role": "system", "content": ASKER},
+            {"role": "system", "content": ASKER + language_instruction(lang)},
             {"role": "user", "content": f"Notas de la bóveda:\n\n{notes}\n\nPregunta: {question}"},
         ],
         validate=require_citation(context),
@@ -103,4 +115,5 @@ async def answer_question(
         tier=outcome.metric.tier,
         escalated=outcome.metric.escalated,
         cost_usd=router.totals(run_id).cost_usd,
+        language=lang,
     )

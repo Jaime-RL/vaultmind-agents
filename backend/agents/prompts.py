@@ -52,7 +52,7 @@ Responde SOLO con el Markdown de la nota."""
 WRITER_NO_SOURCES = """
 IMPORTANTE: no hay fuentes verificadas. Escribe una nota breve (80-150 palabras) con solo la
 definición general del concepto, sin cifras ni detalles concretos, y termina con la línea:
-> [!warning] Nota sin fuentes verificadas: compruébala antes de usarla."""
+> [!warning] {warning}"""
 
 WRITER_REVISION = """
 Versión anterior de la nota:

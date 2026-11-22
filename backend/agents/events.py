@@ -12,6 +12,7 @@ from typing import Any, Protocol
 from app.contracts import (
     Agent,
     AgentThought,
+    Language,
     NodeProposed,
     RouteDecision,
     RunError,
@@ -57,10 +58,12 @@ class Emitter:
         run_id: str,
         sink: EventSink,
         now: Callable[[], datetime] = lambda: datetime.now(UTC),
+        lang: Language = "es",
     ):
         self.run_id = run_id
         self.sink = sink
         self.now = now
+        self.lang = lang  # idioma de la interfaz: el de los mensajes de los agentes
 
     def _base(self, agent: Agent) -> dict[str, Any]:
         return {"run_id": self.run_id, "ts": self.now(), "agent": agent}

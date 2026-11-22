@@ -60,7 +60,7 @@ La URL pública hace **investigaciones reales, gratis y sin riesgo de gasto**:
 
 **Requisitos:** Docker, o bien Python ≥ 3.12 con [uv](https://docs.astral.sh/uv/) y Node ≥ 22. También hay un DevContainer (Python 3.12, Node 24 y uv) para abrir el proyecto listo en VS Code.
 
-**Variables de entorno:** copia [`.env.example`](.env.example) a `.env`. Para investigar de verdad basta con `LLM_API_KEY` (OpenRouter); los modelos por defecto son Qwen2.5 7B y 72B Instruct. `SEMANTIC_SCHOLAR_API_KEY` es opcional: sin ella, Semantic Scholar usa un límite compartido y, si se satura, el Investigador sigue solo con arXiv. Sin clave, pon `DEMO_MODE=true` (con `docker compose` es el valor por defecto).
+**Variables de entorno:** copia [`.env.example`](.env.example) a `.env`. Para investigar de verdad basta con `LLM_API_KEY` (OpenRouter); los modelos por defecto son Qwen2.5 7B y 72B Instruct. `SEMANTIC_SCHOLAR_API_KEY` es opcional: con ella, el Investigador usa también Semantic Scholar (año, revista y citas); sin ella, solo arXiv, porque la API pública sin clave responde casi siempre «Too Many Requests». Sin clave, pon `DEMO_MODE=true` (con `docker compose` es el valor por defecto).
 
 ```bash
 # Con Docker (desarrollo): backend en :8000 y frontend en :5173

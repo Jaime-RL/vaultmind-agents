@@ -48,7 +48,8 @@ def build_services(
                     http=semantic_scholar_http, api_key=settings.semantic_scholar_api_key
                 ).as_tool()
             ]
-            if settings.semantic_scholar_enabled
+            # Sin clave la API devuelve 429 casi siempre (comprobado): sin clave, solo arXiv.
+            if settings.semantic_scholar_enabled and settings.semantic_scholar_api_key
             else [],
             demo=load_demo(settings),
             force_demo=settings.demo_mode,

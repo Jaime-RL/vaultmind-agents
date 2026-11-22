@@ -138,3 +138,26 @@ async def test_researcher_verifies_sources_from_both_tools(make_router, emitter)
     assert "predict multiple future tokens" in finding.sources[0].abstract
     offered = {t["function"]["name"] for t in fake.calls[0].tools}
     assert offered == {"search_arxiv", "search_semantic_scholar"}
+
+
+@pytest.mark.parametrize(
+    ("enabled", "key", "tools"),
+    [(True, None, []), (True, "k", ["search_semantic_scholar"]), (False, "k", [])],
+)
+def test_semantic_scholar_is_only_offered_with_an_api_key(tmp_path, enabled, key, tools):
+    """Sin clave, la API pública responde 429 casi siempre (comprobado contra la API real):
+    ofrecer la herramienta haría que el Investigador gastara pasos en una búsqueda que falla."""
+    from app.config import Settings
+    from app.services import build_services
+
+    settings = Settings(
+        _env_file=None,
+        vault_path=tmp_path,
+        db_path=tmp_path / "db.sqlite",
+        semantic_scholar_enabled=enabled,
+        semantic_scholar_api_key=key,
+    )
+
+    services = build_services(settings)
+
+    assert [t.name for t in services.runs.extra_tools] == tools

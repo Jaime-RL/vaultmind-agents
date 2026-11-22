@@ -63,8 +63,8 @@ class Settings(BaseSettings):
     # URL pública: cada visitante (cookie anónima) ve y resuelve solo SUS propuestas, y lo que
     # aprueba se guarda en la base de datos para él, sin escribir en la bóveda compartida.
     public_mode: bool = False
-    # Segunda fuente del Investigador (año, revista y citas). Sin clave funciona con un límite
-    # compartido; si responde 429, el Investigador sigue solo con arXiv.
+    # Segunda fuente del Investigador (año, revista y citas). Solo se activa con clave: sin
+    # ella, la API pública responde 429 casi siempre y el Investigador gastaría pasos en vano.
     semantic_scholar_enabled: bool = True
     semantic_scholar_api_key: str | None = None
 

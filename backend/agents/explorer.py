@@ -24,6 +24,9 @@ from router import SmartRoute, require_json_object
 from router.validators import strip_code_fence
 from vault import Vault
 from vault.parser import LinkResolver
+from vault.search import search
+
+NEARBY_NOTES = 5  # notas de la bóveda más parecidas al tema entre las que buscar lagunas
 
 MAX_TITLE_LENGTH = 80
 
@@ -74,16 +77,24 @@ async def explore(
         if gaps
         else tr(emitter.lang, "explorer.no_gaps"),
     )
-    ranked = sorted(gaps, key=lambda name: (-len(gaps[name]), name))  # más mencionadas primero
+    # Solo se ofrecen al modelo las lagunas de la «vecindad» del tema: las mencionadas en las
+    # notas que más se le parecen (BM25). El modelo, aun con instrucciones, enlazaba lagunas
+    # sin relación («LoRA» para la previsión de bolsa, «Evaluación de agentes» para
+    # Q-learning); con un tema ajeno a la bóveda ahora no hay ninguna candidata.
+    near = nearby(vault, topic, gaps)
+    ranked = sorted(near, key=lambda name: (-len(gaps[name]), name))  # más mencionadas primero
 
     if not gaps:
         # Sin lagunas no hay nada que elegir: se investiga solo el tema, sin gastar una llamada.
         topic_title, related, reasoning = clean_title(topic), [], ""
     else:
-        candidates = "\n".join(
-            f"- {name} (mencionada en {len(gaps[name])} notas)"
-            + "".join(f"\n    · {line}" for line in mention_context(vault, name, gaps[name]))
-            for name in ranked
+        candidates = (
+            "\n".join(
+                f"- {name} (mencionada en {len(gaps[name])} notas)"
+                + "".join(f"\n    · {line}" for line in mention_context(vault, name, gaps[name]))
+                for name in ranked
+            )
+            or "(ninguna cerca del tema: no elijas ninguna)"
         )
         outcome = await router.complete(
             run_id=emitter.run_id,
@@ -125,6 +136,17 @@ async def explore(
             "explorer", explanation(topic_title, concepts, reasoning, emitter.lang)
         )
     return concepts
+
+
+def nearby(vault: Vault, topic: str, gaps: dict[str, list[str]]) -> list[str]:
+    """Lagunas mencionadas en las notas más parecidas al tema, o cuyo nombre aparece en él."""
+    close = {hit.note_id for hit in search(vault, topic, k=NEARBY_NOTES, stems=False)}
+    lower = topic.lower()
+    return [
+        name
+        for name, mentions in gaps.items()
+        if close.intersection(mentions) or name.lower() in lower
+    ]
 
 
 def topic_concept(title: str, gaps: dict[str, list[str]], vault: Vault) -> list[Gap]:

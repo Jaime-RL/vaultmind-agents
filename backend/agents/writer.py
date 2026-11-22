@@ -119,7 +119,9 @@ async def draft_note(
     )
     await emitter.route(outcome.decision_event())
 
-    body = normalize_wikilinks(strip_markdown_fence(outcome.response.content or ""))
+    body = fix_heading(
+        normalize_wikilinks(strip_markdown_fence(outcome.response.content or "")), title
+    )
     markdown = (
         body.rstrip() + "\n" + sources_section(finding, lang) + mentioned_in_section(finding, lang)
     )
@@ -156,6 +158,20 @@ def evidence(finding: Finding, max_chars: int = 800) -> str:
         f"- {s.title} ({s.url})" + (f"\n  Abstract: {s.abstract[:max_chars]}" if s.abstract else "")
         for s in finding.sources
     )
+
+
+def fix_heading(body: str, title: str) -> str:
+    """El encabezado es siempre el título de la propuesta.
+
+    Regresión (evals/quality.py): el modelo escribió «# SLAN en robótica» en la nota
+    «SLAM en robótica». El título ya lo decidió el Explorador; el modelo no lo cambia.
+    """
+    lines = body.lstrip().splitlines()
+    if lines and lines[0].startswith("# "):
+        lines[0] = f"# {title}"
+    else:
+        lines = [f"# {title}", ""] + lines
+    return "\n".join(lines)
 
 
 def note_body(markdown: str) -> str:

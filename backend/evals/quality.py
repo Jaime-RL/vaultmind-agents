@@ -39,6 +39,7 @@ TOPICS: list[tuple[str, bool]] = [
     ("Mixture of Experts", True),
     ("Interpolación de datos meteorológicos", True),
     ("Speculative decoding", True),
+    ("agentes con tool calling", True),
     ("Raft consensus algorithm", False),
     ("SLAM en robótica", False),
     ("Q-learning", False),
@@ -67,6 +68,7 @@ class TopicReport:
     in_domain: bool
     concepts: list[str] = field(default_factory=list)
     explorer_reasoning: list[str] = field(default_factory=list)
+    log: list[str] = field(default_factory=list)  # todos los mensajes de los agentes
     notes: list[NoteReport] = field(default_factory=list)
     cost_usd: float = 0.0
     error: str | None = None
@@ -93,6 +95,11 @@ async def run_topic(topic: str, in_domain: bool, services, vault: Vault) -> Topi
     )
     report.explorer_reasoning = [
         e.text for e in sink.events if e.type == "agent_thought" and e.agent == "explorer"
+    ]
+    report.log = [
+        f"{e.agent}: {event_text(e)}"
+        for e in sink.events
+        if e.type in ("agent_thought", "tool_result", "error")
     ]
     if result is None:
         errors = [getattr(e, "message", "") for e in sink.events if e.type == "error"]
@@ -121,6 +128,13 @@ async def run_topic(topic: str, in_domain: bool, services, vault: Vault) -> Topi
     return report
 
 
+def event_text(event) -> str:
+    for attr in ("text", "summary", "message"):
+        if getattr(event, attr, None):
+            return str(getattr(event, attr))
+    return ""
+
+
 def to_markdown(reports: list[TopicReport]) -> str:
     lines = ["# Evaluación de calidad de punta a punta", ""]
     lines += [
@@ -137,6 +151,8 @@ def to_markdown(reports: list[TopicReport]) -> str:
     for r in reports:
         lines += ["", f"## {r.topic}", ""]
         lines += [f"> {t}" for t in r.explorer_reasoning]
+        if not r.notes:
+            lines += ["", "Registro (sin notas):", ""] + [f"- {t}" for t in r.log]
         for n in r.notes:
             review = f"{n.supported}/{n.claims}" if n.claims is not None else "sin revisión"
             lines += [

@@ -14,7 +14,7 @@ from datetime import UTC, datetime
 
 from agents.events import Emitter
 from agents.prompts import WRITER, WRITER_NO_SOURCES, WRITER_REVISION
-from agents.researcher import Finding
+from agents.researcher import Finding, vault_usage
 from app.contracts import Language, Proposal
 from app.i18n import NOTE_SECTION_MARKERS, language_instruction, tr
 from llm import LLMError, LLMResponse
@@ -100,7 +100,7 @@ async def draft_note(
     system += language_instruction(lang)
     user = (
         f"Tema de la investigación: {topic}\n"
-        f"Concepto: {title}\n\n"
+        f"Concepto: {title}{vault_usage(finding.gap)}\n\n"
         f"Resumen de la investigación:\n{finding.summary}\n\n"
         f"Fuentes (con su abstract):\n{evidence(finding)}\n\n"
         f"Notas existentes:\n" + "\n".join(f"- {t}" for t in titles)
@@ -119,7 +119,9 @@ async def draft_note(
     )
     await emitter.route(outcome.decision_event())
 
-    body = normalize_wikilinks(strip_markdown_fence(outcome.response.content or ""))
+    body = fix_heading(
+        normalize_wikilinks(strip_markdown_fence(outcome.response.content or "")), title
+    )
     markdown = (
         body.rstrip() + "\n" + sources_section(finding, lang) + mentioned_in_section(finding, lang)
     )
@@ -156,6 +158,20 @@ def evidence(finding: Finding, max_chars: int = 800) -> str:
         f"- {s.title} ({s.url})" + (f"\n  Abstract: {s.abstract[:max_chars]}" if s.abstract else "")
         for s in finding.sources
     )
+
+
+def fix_heading(body: str, title: str) -> str:
+    """El encabezado es siempre el título de la propuesta.
+
+    Regresión (evals/quality.py): el modelo escribió «# SLAN en robótica» en la nota
+    «SLAM en robótica». El título ya lo decidió el Explorador; el modelo no lo cambia.
+    """
+    lines = body.lstrip().splitlines()
+    if lines and lines[0].startswith("# "):
+        lines[0] = f"# {title}"
+    else:
+        lines = [f"# {title}", ""] + lines
+    return "\n".join(lines)
 
 
 def note_body(markdown: str) -> str:

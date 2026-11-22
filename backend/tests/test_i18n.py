@@ -118,3 +118,15 @@ async def test_no_notes_message_in_the_question_language(tmp_path):
         run_id="b",
     )
     assert response.language == "de" and response.answer.startswith("Dazu finde ich nichts")
+
+
+def test_notes_follow_the_vault_language_unless_the_topic_is_a_sentence():
+    """Regresión: «Mixture of Experts» producía notas en inglés en una bóveda en español."""
+    from app.i18n import note_language
+
+    vault = ["Los modelos pequeños son útiles para el chatbot de la bóveda."]
+    assert note_language("auto", "Mixture of Experts", vault, ui="en") == "es"
+    assert note_language("auto", "Raft consensus algorithm", vault, ui="en") == "es"
+    assert note_language("auto", "how do the agents use the tools", vault, ui="es") == "en"
+    assert note_language("fr", "Mixture of Experts", vault, ui="es") == "fr"
+    assert note_language("auto", "LoRA", [], ui="de") == "de"  # bóveda vacía: la interfaz

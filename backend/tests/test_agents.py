@@ -31,7 +31,7 @@ async def test_explorer_puts_the_topic_first_and_adds_related_gaps(
         [final({"topic_note": "Modelos pequeños", "selected": ["LoRA", "Routing"]})]
     )
 
-    gaps = await explore(topic="SLMs", vault=vault, router=router, emitter=emitter)
+    gaps = await explore(topic="SLM", vault=vault, router=router, emitter=emitter)
 
     # El tema pedido va siempre primero; después, las lagunas relacionadas.
     assert [g.name for g in gaps] == ["Modelos pequeños", "LoRA", "Routing"]
@@ -39,7 +39,7 @@ async def test_explorer_puts_the_topic_first_and_adds_related_gaps(
     assert gaps[2].mentioned_in == ["Agentes", "SLM"]
     assert fake.calls[0].model == "large"  # find_gaps va al grande desde las evals con Groq
     prompt = fake.calls[0].messages[-1]["content"]
-    assert "Tema: SLMs" in prompt
+    assert "Tema: SLM" in prompt
     assert prompt.index("Routing") < prompt.index("LoRA")  # ordenadas por menciones
     assert sink.types()[:3] == ["agent_thought", "tool_call", "tool_result"]
 
@@ -58,7 +58,7 @@ async def test_explorer_ignores_invented_gaps_and_fixes_case(make_router, emitte
         [final({"topic_note": "SLMs", "selected": ["lora", "Algo inventado", "LoRA"]})]
     )
 
-    gaps = await explore(topic="SLMs", vault=vault, router=router, emitter=emitter)
+    gaps = await explore(topic="SLM", vault=vault, router=router, emitter=emitter)
 
     assert [g.name for g in gaps] == ["SLMs", "LoRA"]
 
@@ -76,7 +76,7 @@ async def test_explorer_reuses_a_gap_that_matches_the_topic(make_router, emitter
 async def test_explorer_respects_max_gaps(make_router, emitter, vault):
     router, _ = make_router([final({"topic_note": "T", "selected": ["Routing", "LoRA", "ERA5"]})])
 
-    gaps = await explore(topic="t", vault=vault, router=router, emitter=emitter, max_gaps=2)
+    gaps = await explore(topic="datos SLM", vault=vault, router=router, emitter=emitter, max_gaps=2)
 
     assert [g.name for g in gaps] == ["T", "Routing"]
 
@@ -95,6 +95,60 @@ async def test_explorer_sanitizes_the_topic_title(make_router, emitter, vault):
     gaps = await explore(topic="moe", vault=vault, router=router, emitter=emitter)
 
     assert [g.name for g in gaps] == ["Mixture of experts"]
+
+
+async def test_explorer_skips_concepts_with_a_pending_proposal(make_router, emitter, sink, vault):
+    """Regresión: lanzar dos veces «CNNs» dejaba dos propuestas iguales de cada nota."""
+    router, fake = make_router(
+        [final({"topic_note": "Modelos pequeños", "selected": ["LoRA", "Routing"]})]
+    )
+
+    gaps = await explore(
+        topic="SLM",
+        vault=vault,
+        router=router,
+        emitter=emitter,
+        pending_titles=["modelos pequeños", "LoRA"],
+    )
+
+    assert [g.name for g in gaps] == ["Routing"]
+    # La laguna pendiente ni siquiera se ofrece al modelo.
+    assert "- LoRA (" not in fake.calls[0].messages[-1]["content"]
+    assert any("propuesta pendiente" in e.text for e in sink.events if e.type == "agent_thought")
+
+
+async def test_explorer_returns_nothing_when_everything_is_pending(make_router, emitter, vault):
+    router, _ = make_router([final({"topic_note": "LoRA", "selected": []})])
+
+    gaps = await explore(
+        topic="LoRA", vault=vault, router=router, emitter=emitter, pending_titles=["LoRA"]
+    )
+
+    assert gaps == []
+
+
+async def test_explorer_shows_how_the_vault_uses_each_gap(make_router, emitter, vault):
+    """El modelo juzga la relación por el significado de la laguna en la bóveda."""
+    router, fake = make_router([final({"topic_note": "Modelos pequeños", "selected": ["ERA5"]})])
+
+    gaps = await explore(topic="datos SLM", vault=vault, router=router, emitter=emitter)
+
+    assert "Clima: «Datos de [[ERA5]].»" in fake.calls[0].messages[-1]["content"]
+    assert gaps[1].context == ("Clima: «Datos de [[ERA5]].»",)
+
+
+async def test_explorer_only_offers_gaps_near_the_topic(make_router, emitter, vault):
+    """Regresión: «previsión de bolsa» arrastraba «LoRA» y «Q-learning», «Evaluación de
+    agentes». Con un tema ajeno a la bóveda no se ofrece ninguna laguna al modelo."""
+    router, fake = make_router([final({"topic_note": "Previsión de bolsa", "selected": ["LoRA"]})])
+
+    gaps = await explore(
+        topic="previsión de bolsa Banco Santander", vault=vault, router=router, emitter=emitter
+    )
+
+    assert [g.name for g in gaps] == ["Previsión de bolsa"]
+    prompt = fake.calls[0].messages[-1]["content"]
+    assert "- LoRA (" not in prompt and "ninguna cerca del tema" in prompt
 
 
 def test_clean_title_never_produces_a_path():
@@ -139,6 +193,31 @@ async def test_researcher_keeps_only_sources_returned_by_arxiv(make_router, emit
     assert len(findings) == 1
     assert findings[0].summary.startswith("LoRA")
     assert [s.url for s in findings[0].sources] == [PAPER_URL]
+
+
+async def test_researcher_and_writer_get_how_the_vault_uses_the_gap(make_router, emitter):
+    """Regresión: «Routing de modelos» (en la bóveda, elegir entre SLM y LLM) se investigaba
+    como el routing de Mixture of Experts porque solo se pasaba el nombre."""
+    gap = Gap(
+        name="Routing",
+        mentioned_in=["SLM"],
+        context=("SLM: «un [[SLM]] para lo sencillo y un [[LLM]] para lo difícil ([[Routing]])»",),
+    )
+    answer = {
+        "summary": "Elegir modelo según la dificultad.",
+        "sources": [{"title": "Real", "url": PAPER_URL}],
+    }
+    router, fake = make_router([calls_tool("search_arxiv", query="model routing"), final(answer)])
+
+    await research(
+        topic="Mixture of Experts",
+        gaps=[gap],
+        router=router,
+        emitter=emitter,
+        search_tool=fake_search_tool(),
+    )
+
+    assert "para lo difícil" in fake.calls[0].messages[-1]["content"]
 
 
 async def test_researcher_matches_sources_by_arxiv_id(make_router, emitter):

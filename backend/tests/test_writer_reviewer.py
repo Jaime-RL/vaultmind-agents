@@ -130,6 +130,26 @@ async def test_reviewer_reports_support_and_issues(make_router, emitter, sink, v
     assert "cifra sin fuente" in sink.events[-1].text
 
 
+async def test_reviewer_checks_against_abstracts_not_the_research_summary(
+    make_router, emitter, vault
+):
+    """Regresión: el resumen del Investigador colaba ARIMA o GARCH (que ninguna fuente cita) y
+    el Revisor los daba por respaldados. La evidencia son los abstracts."""
+    finding = Finding(
+        gap=Gap(name="LoRA", mentioned_in=[]),
+        summary="LoRA, como ARIMA y GARCH, ...",
+        sources=[Source(title="Example paper", url=PAPER_URL, abstract="Low-rank adapters.")],
+    )
+    proposal = await make_proposal(make_router, emitter, vault, finding)
+    router, fake = make_router([final({"claims": 3, "supported": 1, "issues": ["ARIMA"]})])
+
+    await review_notes(proposals=[proposal], findings=[finding], router=router, emitter=emitter)
+
+    evidence = fake.calls[0].messages[-1]["content"].split("NOTA")[0]
+    assert "Low-rank adapters." in evidence
+    assert "ARIMA" not in evidence
+
+
 async def test_reviewer_clamps_inconsistent_numbers(make_router, emitter, vault, finding):
     proposal = await make_proposal(make_router, emitter, vault, finding)
     router, _ = make_router([final({"claims": 2, "supported": 7, "issues": []})])

@@ -6,6 +6,12 @@ name: Evals
 
 on:
   workflow_dispatch:
+    inputs:
+      mode:
+        description: "routing = SLM frente a grande por tarea · quality = investigaciones reales de punta a punta"
+        type: choice
+        options: [routing, quality]
+        default: routing
 
 permissions:
   contents: read
@@ -13,7 +19,7 @@ permissions:
 jobs:
   evals:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: backend
@@ -41,11 +47,19 @@ jobs:
             echo "::error::Falta el secreto LLM_API_KEY (Settings → Secrets and variables → Actions)"
             exit 1
           fi
+      - name: Evaluación de calidad (investigaciones reales)
+        if: inputs.mode == 'quality'
+        run: |
+          uv run python -m evals.quality > quality.md
+          cat quality.md >> "$GITHUB_STEP_SUMMARY"
       - name: Ejecutar las evals
+        if: inputs.mode != 'quality'
         run: uv run python -m evals.run
       - name: Tabla para el README
+        if: inputs.mode != 'quality'
         run: uv run python -m evals.report | tee report.md
       - name: Publicar el resultado en el resumen del job
+        if: inputs.mode != 'quality'
         run: |
           cat report.md >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"

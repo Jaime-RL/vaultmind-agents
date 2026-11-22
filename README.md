@@ -164,4 +164,22 @@ Evals con 16 casos fijos (`backend/evals/cases.py`), lanzadas desde GitHub Actio
 - **Un enlace roto que no se veía:** el modelo grande escribió `[[Fine‑tuning]]` con un guion tipográfico (U+2011) y no enlazaba con la nota `Fine-tuning`. El Redactor ahora normaliza los guiones dentro de los enlaces.
 - **Un test de las evals estaba mal:** exigía 2 enlaces por nota cuando el prompt pide no forzarlos.
 
+### Calidad de las notas: evaluación de punta a punta
+
+`backend/evals/quality.py` lanza investigaciones reales (Explorador → Investigador → Redactor ⇄ Revisor, con arXiv y Groq) sobre la bóveda de demo. Usa temas del dominio de la bóveda (Mixture of Experts, interpolación meteorológica, tool calling) y temas ajenos (Raft, SLAM, Q-learning, criptografía, previsión de bolsa). Guarda cada nota con sus enlaces, fuentes y revisión. Se lanza desde **Actions → Evals → Run workflow** con `mode = quality`.
+
+Lo que destapó la primera ejecución y cómo se corrigió:
+
+| Problema | Ejemplo | Arreglo |
+| --- | --- | --- |
+| Lagunas sin relación | «Q-learning» arrastraba «Evaluación de agentes» y la bolsa, «LoRA» | Solo se ofrecen al modelo las lagunas mencionadas en las notas más parecidas al tema (BM25) |
+| Lagunas con otro significado | «Routing de modelos» (en la bóveda: SLM frente a LLM) se escribió como el routing interno de Mixture of Experts | Cada laguna lleva las frases de la bóveda que la mencionan; Explorador, Investigador y Redactor las usan |
+| Notas en el idioma equivocado | «Mixture of Experts» daba una nota en inglés en una bóveda en español | Con «auto», el idioma de la bóveda; un término técnico en inglés no lo cambia |
+| Revisor demasiado generoso | La nota de bolsa citaba ARIMA, GARCH y LSTM (ninguna fuente los nombra) y sacaba 5/5 | El Revisor comprueba contra los abstracts, no contra el resumen del Investigador, y cuenta una afirmación por frase |
+| Notas duplicadas | Lanzar dos veces «CNNs» dejaba dos propuestas de cada nota | No se investiga lo que ya tiene una propuesta pendiente |
+| Título cambiado | «# SLAN en robótica» | El encabezado es siempre el título |
+| Investigación detenida | El límite diario de tokens de Groq del modelo grande (429) paraba todo | SmartRoute usa el modelo pequeño como respaldo cuando el grande no está disponible |
+
+Con el Revisor más estricto, las puntuaciones bajaron (por ejemplo, 2/5 o 0/5 en notas de clima). Las notas no empeoraron: el Revisor ya no da por buenas afirmaciones que las fuentes no dicen. Sigue habiendo un límite claro: VaultMind solo busca en arXiv, así que con temas como una empresa concreta o datos en tiempo real la nota es genérica.
+
 **Próximos pasos:** ver el backlog de la sección 2.

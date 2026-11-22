@@ -1,8 +1,8 @@
 """Bucle editorial: Redactor → Revisor → (Redactor corrige → Revisor) → publicar.
 
 Antes, cada nota se publicaba aunque el Revisor encontrara que casi nada tenía respaldo.
-Ahora el Revisor actúa ANTES de publicar y, si menos del 80 % de las afirmaciones están
-respaldadas por la evidencia (resumen + abstracts), el Redactor reescribe la nota una vez
+Ahora el Revisor actúa ANTES de publicar y, si encuentra alguna afirmación que no está
+respaldada por la evidencia (resumen + abstracts), el Redactor reescribe la nota una vez
 quitando lo dudoso. Una sola vuelta: acota el coste y evita bucles infinitos.
 
 Si el Revisor falla, la nota se publica igualmente: perder una nota por un fallo de la

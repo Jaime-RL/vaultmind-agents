@@ -41,9 +41,19 @@ async def research(
     findings = []
     for gap in gaps:
         try:
-            findings.append(await research_gap(topic, gap, router, emitter, search_tool))
+            finding = await research_gap(topic, gap, router, emitter, search_tool)
         except LLMError as exc:
             await emitter.thought("researcher", f"No pude investigar «{gap.name}»: {exc}")
+            continue
+        if not finding.sources and not gap.is_topic:
+            # Una laguna «relacionada» sin ningún paper que la respalde suele ser una relación
+            # mal elegida por el Explorador: mejor no proponer una nota escrita de memoria.
+            await emitter.thought(
+                "researcher",
+                f"Descarto «{gap.name}»: no encontré fuentes que la relacionen con el tema.",
+            )
+            continue
+        findings.append(finding)
     return findings
 
 

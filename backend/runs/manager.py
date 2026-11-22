@@ -123,6 +123,8 @@ class RunManager:
             raise DailyQuotaExceededError(f"Se ha agotado {quota}; vuelve mañana")
         vault = parse_vault(self.vault_path, self.approved_notes(owner))  # o VaultNotFoundError
 
+        # Lo que el visitante tiene pendiente de revisar no se vuelve a investigar.
+        pending = [p.title for p in self.store.list_proposals("pending", owner=owner)]
         run_id = f"run-{uuid.uuid4().hex[:12]}"
         self.store.create_run(run_id, topic, client_ip=client_ip, mode="real", owner=owner)
         live = self._live[run_id] = LiveRun()
@@ -146,6 +148,7 @@ class RunManager:
                 extra_tools=self.extra_tools,
                 on_proposal=save_proposal,
                 max_gaps=self.max_gaps,
+                pending_titles=pending,
             ),
             name=run_id,
         )

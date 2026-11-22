@@ -51,7 +51,12 @@ async def review_note(
     proposal: Proposal, finding: Finding | None, router: SmartRoute, emitter: Emitter
 ) -> Review:
     await emitter.tool_call("reviewer", "verify_claims", {"proposal_id": proposal.id})
-    if finding is not None:
+    # La evidencia son los abstracts, no el resumen del Investigador: ese resumen lo escribe
+    # un modelo y puede colar conocimiento propio (ARIMA, GARCH... en una nota cuyas fuentes
+    # no los citan), que luego contaba como «respaldado». Sin abstracts, el resumen.
+    if finding is not None and any(s.abstract for s in finding.sources):
+        proof = f"Fuentes:\n{evidence(finding)}"
+    elif finding is not None:
         proof = f"Resumen de la investigación:\n{finding.summary}\n\nFuentes:\n{evidence(finding)}"
     else:
         proof = "(sin evidencia)"

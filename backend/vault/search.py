@@ -78,11 +78,14 @@ def stem(word: str) -> str:
     return word[:STEM_LENGTH] if len(word) > STEM_LENGTH else word
 
 
-def search(vault: Vault, query: str, k: int = 5) -> list[Hit]:
+def search(vault: Vault, query: str, k: int = 5, stems: bool = True) -> list[Hit]:
     """Las k notas más relevantes. Primero por palabras exactas; si no hay ninguna (p. ej.
-    una pregunta en francés sobre notas escritas en español), por raíces."""
+    una pregunta en francés sobre notas escritas en español), por raíces.
+
+    `stems=False` desactiva ese segundo intento: el Explorador lo usa para decidir si un tema
+    toca la bóveda, y con raíces «Raft consensus algorithm» coincidía con notas sin relación."""
     hits = _bm25(vault, query, k, lambda words: words)
-    if hits:
+    if hits or not stems:
         return hits
     return _bm25(vault, query, k, lambda words: [stem(w) for w in words])
 

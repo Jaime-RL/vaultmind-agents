@@ -46,16 +46,19 @@ def _words(text: str) -> list[str]:
     return re.findall(r"[a-z]+", plain)
 
 
-def detect_language(text: str, fallback: Language = "es") -> Language:
+def detect_language(text: str, fallback: Language = "es", min_score: int = 1) -> Language:
     """Idioma más probable de un texto corto. Si no hay pistas (p. ej. «multi-token
-    prediction», solo términos técnicos), devuelve `fallback` (el idioma de la interfaz)."""
+    prediction», solo términos técnicos), devuelve `fallback` (el idioma de la interfaz).
+
+    `min_score`: pistas mínimas para fiarse. Con 2, «Mixture of Experts» (una sola: «of»)
+    se considera un término técnico y no una frase en inglés."""
     words = _words(text)
     scores = {lang: sum(w in markers for w in words) for lang, markers in _MARKERS.items()}
     lower = text.lower()
     for lang, letters in _LETTERS.items():
         scores[lang] += 2 * sum(lower.count(c) for c in letters)
     best = max(scores.values())
-    if best == 0:
+    if best < max(min_score, 1):
         return fallback
     winners = [lang for lang in LANGUAGES if scores[lang] == best]
     return fallback if fallback in winners else winners[0]
@@ -63,6 +66,23 @@ def detect_language(text: str, fallback: Language = "es") -> Language:
 
 def resolve_language(requested: ContentLanguage, text: str, ui: Language = "es") -> Language:
     return detect_language(text, fallback=ui) if requested == "auto" else requested
+
+
+def note_language(
+    requested: ContentLanguage, topic: str, vault_texts: list[str], ui: Language
+) -> Language:
+    """Idioma de las notas de una investigación.
+
+    Las notas acaban en la bóveda del usuario, así que con «auto» se escriben en el idioma
+    de la bóveda. Solo si el tema es claramente una frase en otro idioma («how do LLMs
+    reason») se sigue al tema. Un término técnico en inglés («Mixture of Experts»,
+    «Raft consensus algorithm») NO cambia el idioma: antes salían notas en inglés en una
+    bóveda escrita en español (lo detectó evals/quality.py).
+    """
+    if requested != "auto":
+        return requested
+    vault_lang = detect_language(" ".join(vault_texts)[:20000], fallback=ui)
+    return detect_language(topic, fallback=vault_lang, min_score=2)
 
 
 def language_instruction(lang: Language) -> str:
@@ -109,6 +129,13 @@ _T: dict[str, dict[Language, str]] = {
         "fr": "Vous avez déjà une note sur « {title} ».",
         "de": "Du hast bereits eine Notiz zu „{title}“.",
         "pt": "Já tens uma nota sobre «{title}».",
+    },
+    "explorer.pending": {
+        "es": "Ya tienes una propuesta pendiente sobre {names}: no la repito.",
+        "en": "You already have a pending proposal on {names}: I won't repeat it.",
+        "fr": "Vous avez déjà une proposition en attente sur {names} : je ne la répète pas.",
+        "de": "Du hast bereits einen offenen Vorschlag zu {names}: Ich wiederhole ihn nicht.",
+        "pt": "Já tens uma proposta pendente sobre {names}: não a repito.",
     },
     "explorer.nothing": {
         "es": "Ya tienes una nota sobre «{title}» y no hay lagunas relacionadas.",

@@ -122,7 +122,8 @@ async def research_gap(
             {"role": "system", "content": RESEARCHER},
             {
                 "role": "user",
-                "content": f"Tema de la investigación: {topic}\nConcepto a investigar: {gap.name}",
+                "content": f"Tema de la investigación: {topic}\nConcepto a investigar: {gap.name}"
+                + vault_usage(gap),
             },
         ],
         tools=tools,
@@ -175,3 +176,12 @@ def verified_sources(cited: list, seen: dict[str, Source]) -> list[Source]:
             title = source.title or str(item.get("title", "")).strip()
             result.append(Source(title=title, url=source.url, abstract=source.abstract))
     return result
+
+
+def vault_usage(gap: Gap) -> str:
+    """Cómo aparece el concepto en las notas del estudiante (vacío si es un tema nuevo)."""
+    if not gap.context:
+        return ""
+    return "\nAsí aparece en las notas del estudiante:\n" + "\n".join(
+        f"- {line}" for line in gap.context
+    )

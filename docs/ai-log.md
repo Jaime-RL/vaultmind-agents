@@ -89,3 +89,9 @@ Materia prima para la sección «Cómo se construyó con IA» del README. Apunta
 - **Qué funcionó:** juntar en una sola PR de `contracts/` los dos cambios de `Proposal` que necesitan las fases siguientes (la revisión y la edición antes de aprobar). Así Iván revisa el contrato una vez. Los dos campos son opcionales: los clientes y datos antiguos siguen siendo válidos.
 - **Qué costó o falló:** el test de deriva valida los ejemplos con `model_dump()`, que incluye los `None`; por eso los campos opcionales admiten `null` en el esquema (`anyOf` con `null`) en lugar de ser solo «no requeridos».
 - **Qué cambiaría:** nada por ahora.
+
+### 2026-11-22 · Persona A (agente autónomo) · Fase 2: revisión guardada en cada nota
+- **Prompt:** roadmap autónomo, fase 2.
+- **Qué funcionó:** adjuntar la revisión final a la `Proposal` justo antes de publicarla: la nota y su «5/5 respaldadas» viajan juntas a la base de datos y a la API, sin endpoints nuevos. La demo se regeneró con el mismo flujo que el código real (escribir → revisar → corregir → publicar), incluida una corrección en «Routing de modelos» para que el vídeo la enseñe.
+- **Qué costó o falló:** un test de la demo contaba 10 tareas exactas; con la corrección son 12. Era una cifra mágica: ahora el comentario explica de dónde sale.
+- **Qué cambiaría:** generar ese número desde el propio fixture en lugar de escribirlo a mano.

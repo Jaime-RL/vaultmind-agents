@@ -5,6 +5,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sse_starlette.sse import EventSourceResponse
 
 from api.deps import get_services
+from api.session import owner_of
+from app.config import Settings, get_settings
 from app.contracts import ResearchRequest, ResearchResponse
 from app.services import Services
 from runs import (
@@ -18,6 +20,7 @@ from vault import VaultNotFoundError
 router = APIRouter(tags=["research"])
 
 ServicesDep = Annotated[Services, Depends(get_services)]
+SettingsDep = Annotated[Settings, Depends(get_settings)]
 
 
 def client_ip(request: Request) -> str | None:
@@ -38,11 +41,13 @@ def client_ip(request: Request) -> str | None:
 
 @router.post("/research", response_model=ResearchResponse)
 async def start_research(
-    body: ResearchRequest, request: Request, services: ServicesDep
+    body: ResearchRequest, request: Request, services: ServicesDep, settings: SettingsDep
 ) -> ResearchResponse:
     """Lanza una investigación en segundo plano y devuelve su run_id al momento."""
     try:
-        run_id = await services.runs.start(body.topic.strip(), client_ip=client_ip(request))
+        run_id = await services.runs.start(
+            body.topic.strip(), client_ip=client_ip(request), owner=owner_of(request, settings)
+        )
     except (TooManyRunsError, DailyQuotaExceededError) as exc:
         raise HTTPException(status_code=429, detail=str(exc)) from exc
     except LLMNotConfiguredError as exc:

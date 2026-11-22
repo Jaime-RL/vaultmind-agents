@@ -53,5 +53,8 @@ services:
         value: "10"
       - key: MAX_RUNS_PER_IP_PER_DAY
         value: "3"
+      # Cada visitante ve solo sus notas y aprobar no escribe en la bóveda compartida.
+      - key: PUBLIC_MODE
+        value: "true"
       - key: DEMO_SPEED
         value: "1.5"

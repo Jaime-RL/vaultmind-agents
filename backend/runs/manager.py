@@ -23,6 +23,7 @@ from runs.demo import DemoRun, play_demo
 from runs.sink import LiveRun, RunSink
 from store import Store
 from vault import parse_vault
+from vault.writer import COPILOT_DIR, safe_note_name
 
 logger = logging.getLogger(__name__)
 
@@ -81,28 +82,34 @@ class RunManager:
         self._live: dict[str, LiveRun] = {}
         self._tasks: set[asyncio.Task] = set()
 
-    async def start(self, topic: str, client_ip: str | None = None) -> str:
+    async def start(
+        self, topic: str, client_ip: str | None = None, owner: str | None = None
+    ) -> str:
+        """Lanza una investigación. `owner` (modo público) es la sesión anónima del visitante:
+        sus propuestas solo las ve él, y su bóveda incluye las notas que ya ha aprobado."""
         if len(self._tasks) >= self.max_concurrent:
             raise TooManyRunsError(
                 f"Ya hay {self.max_concurrent} investigaciones en curso; inténtalo en un momento"
             )
         if self.force_demo and self.demo is not None:
-            return self._start_demo(topic, client_ip)
+            return self._start_demo(topic, client_ip, owner=owner)
         if self.router_factory is None:
             if self.demo is not None:
-                return self._start_demo(topic, client_ip, reason="sin modelo configurado")
+                return self._start_demo(
+                    topic, client_ip, reason="sin modelo configurado", owner=owner
+                )
             raise LLMNotConfiguredError(
                 "Falta configurar el LLM: define LLM_API_KEY, SLM_MODEL y LARGE_MODEL"
             )
         quota = self._quota_problem(client_ip)
         if quota is not None:
             if self.demo is not None:
-                return self._start_demo(topic, client_ip, reason=quota)
+                return self._start_demo(topic, client_ip, reason=quota, owner=owner)
             raise DailyQuotaExceededError(f"Se ha agotado {quota}; vuelve mañana")
-        vault = parse_vault(self.vault_path)  # VaultNotFoundError si no existe
+        vault = parse_vault(self.vault_path, self.approved_notes(owner))  # o VaultNotFoundError
 
         run_id = f"run-{uuid.uuid4().hex[:12]}"
-        self.store.create_run(run_id, topic, client_ip=client_ip, mode="real")
+        self.store.create_run(run_id, topic, client_ip=client_ip, mode="real", owner=owner)
         live = self._live[run_id] = LiveRun()
 
         router = self.router_factory()
@@ -143,13 +150,26 @@ class RunManager:
             return "tu cupo de investigaciones de hoy"
         return None
 
+    def approved_notes(self, owner: str | None) -> dict[str, str]:
+        """Notas aprobadas por un visitante (modo público), como ficheros virtuales de la bóveda."""
+        if owner is None:
+            return {}
+        return {
+            f"{COPILOT_DIR}/{safe_note_name(p.title)}.md": p.markdown
+            for p in reversed(self.store.list_proposals("approved", owner=owner))
+        }
+
     def _start_demo(
-        self, topic: str, client_ip: str | None = None, reason: str | None = None
+        self,
+        topic: str,
+        client_ip: str | None = None,
+        reason: str | None = None,
+        owner: str | None = None,
     ) -> str:
         # Una demo nueva sustituye a las notas pendientes de demos anteriores (son las mismas).
-        self.store.delete_pending_demo_proposals()
+        self.store.delete_pending_demo_proposals(owner)
         run_id = f"run-{uuid.uuid4().hex[:12]}"
-        self.store.create_run(run_id, topic, client_ip=client_ip, mode="demo")
+        self.store.create_run(run_id, topic, client_ip=client_ip, mode="demo", owner=owner)
         live = self._live[run_id] = LiveRun()
         sink = RunSink(run_id, self.store, live)
         self._track(

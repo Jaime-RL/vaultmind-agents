@@ -23,6 +23,9 @@ from router.validators import strip_code_fence
 class Source:
     title: str
     url: str
+    # Abstract tal como lo devolvió arXiv: el Redactor y el Revisor lo usan como evidencia,
+    # para que la nota no dependa solo del resumen (que el modelo puede adornar).
+    abstract: str = field(default="", compare=False)
 
 
 @dataclass(frozen=True)
@@ -66,7 +69,9 @@ async def research_gap(
         output = await search_tool.handler(args)
         for item in output.data:
             if isinstance(item, dict) and item.get("url"):
-                seen[source_key(item["url"])] = Source(str(item.get("title", "")), item["url"])
+                seen[source_key(item["url"])] = Source(
+                    str(item.get("title", "")), item["url"], str(item.get("summary", ""))
+                )
         return output
 
     tool = Tool(search_tool.name, search_tool.description, search_tool.parameters, tracked)
@@ -79,7 +84,7 @@ async def research_gap(
             {"role": "system", "content": RESEARCHER},
             {
                 "role": "user",
-                "content": f"Tema del TFG: {topic}\nConcepto a investigar: {gap.name}",
+                "content": f"Tema de la investigación: {topic}\nConcepto a investigar: {gap.name}",
             },
         ],
         tools=[tool],
@@ -124,5 +129,5 @@ def verified_sources(cited: list, seen: dict[str, Source]) -> list[Source]:
         source = seen.get(source_key(str(item["url"])))
         if source is not None and source not in result:
             title = source.title or str(item.get("title", "")).strip()
-            result.append(Source(title=title, url=source.url))
+            result.append(Source(title=title, url=source.url, abstract=source.abstract))
     return result

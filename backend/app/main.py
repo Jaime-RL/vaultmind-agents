@@ -10,6 +10,7 @@ from api.health import router as health_router
 from api.metrics import router as metrics_router
 from api.proposals import router as proposals_router
 from api.research import router as research_router
+from api.session import session_middleware
 from api.vault import router as vault_router
 from app.config import Settings, get_settings
 from app.services import Services, build_services
@@ -47,6 +48,8 @@ def create_app(settings: Settings | None = None, services: Services | None = Non
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    app.middleware("http")(session_middleware)
 
     app.include_router(health_router, prefix="/api")
     app.include_router(vault_router, prefix="/api")

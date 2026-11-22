@@ -84,7 +84,9 @@ class Vault:
         return sorted(n.id for n in self.notes.values() if not n.links and n.id not in linked)
 
 
-def parse_vault(root: Path) -> Vault:
+def parse_vault(root: Path, extra: dict[str, str] | None = None) -> Vault:
+    """Lee la bóveda. `extra` añade notas en memoria ({ruta relativa .md: texto}) como si
+    existieran en disco: en la URL pública son las notas que ha aprobado cada visitante."""
     root = Path(root)
     if not root.is_dir():
         raise VaultNotFoundError(f"La bóveda no existe o no es una carpeta: {root}")
@@ -92,7 +94,7 @@ def parse_vault(root: Path) -> Vault:
 
     # 1.ª pasada: leer todas las notas. Hace falta conocerlas todas antes de
     # resolver enlaces, porque [[x]] puede apuntar a una nota que aún no hemos leído.
-    raw: dict[str, tuple[Note, list[str]]] = {}
+    files: list[tuple[PurePosixPath, str]] = []
     for file in sorted(root.rglob("*.md")):
         relative = file.relative_to(root)
         # Carpetas ocultas (.obsidian, .trash, .git): configuración, no notas.
@@ -101,12 +103,19 @@ def parse_vault(root: Path) -> Vault:
         # Un enlace simbólico podría apuntar fuera de la bóveda: no lo seguimos.
         if not file.resolve().is_relative_to(real_root):
             continue
+        files.append(
+            (PurePosixPath(relative.as_posix()), file.read_text(encoding="utf-8", errors="replace"))
+        )
+    on_disk = {str(rel) for rel, _ in files}
+    for rel, text in (extra or {}).items():
+        if rel not in on_disk:  # lo que ya está en disco manda
+            files.append((PurePosixPath(rel), text))
 
-        text = file.read_text(encoding="utf-8", errors="replace")
+    raw: dict[str, tuple[Note, list[str]]] = {}
+    for rel_posix, text in files:
         frontmatter, body = split_frontmatter(text)
         visible = strip_code(body)
 
-        rel_posix = PurePosixPath(relative.as_posix())
         note = Note(
             id=str(rel_posix.with_suffix("")),
             title=rel_posix.stem,

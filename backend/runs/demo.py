@@ -17,7 +17,7 @@ from pathlib import Path
 
 from pydantic import TypeAdapter
 
-from app.contracts import AgentEvent, AgentThought, Proposal, RunError, TaskMetric
+from app.contracts import AgentEvent, AgentThought, Language, Proposal, RunError, TaskMetric
 from runs.sink import RunSink
 from store import Store
 
@@ -56,11 +56,16 @@ class DemoRun:
 
 
 async def play_demo(
-    demo: DemoRun, run_id: str, requested_topic: str, sink: RunSink, reason: str | None = None
+    demo: DemoRun,
+    run_id: str,
+    requested_topic: str,
+    sink: RunSink,
+    reason: str | None = None,
+    lang: Language = "es",
 ) -> None:
     """Reproduce la demo. Como una investigación real, termina siempre con run_finished o error."""
     try:
-        await _play(demo, run_id, requested_topic, sink, reason)
+        await _play(demo, run_id, requested_topic, sink, reason, lang)
     except Exception as exc:  # noqa: BLE001 — el flujo SSE debe cerrarse pase lo que pase
         await sink.emit(
             RunError(
@@ -73,7 +78,12 @@ async def play_demo(
 
 
 async def _play(
-    demo: DemoRun, run_id: str, requested_topic: str, sink: RunSink, reason: str | None
+    demo: DemoRun,
+    run_id: str,
+    requested_topic: str,
+    sink: RunSink,
+    reason: str | None,
+    lang: Language = "es",
 ) -> None:
     store: Store = sink.store
     # Ids de propuesta nuevos: aprobar en una reproducción no afecta a las demás.
@@ -87,7 +97,7 @@ async def _play(
             run_id=run_id,
             ts=datetime.now(UTC),
             agent="system",
-            text=demo_notice(requested_topic, demo.topic, reason),
+            text=demo_notice(requested_topic, demo.topic, reason, lang),
         )
     )
 
@@ -116,14 +126,71 @@ async def _play(
         await sink.emit(EVENT_ADAPTER.validate_python(data))
 
 
-def demo_notice(requested: str, recorded: str, reason: str | None = None) -> str:
+# Avisos de la demo en cada idioma. La investigación grabada en sí está en español.
+_DEMO_REASONS: dict[str, dict[Language, str]] = {
+    "sin modelo configurado": {
+        "en": "no model configured",
+        "fr": "aucun modèle configuré",
+        "de": "kein Modell konfiguriert",
+        "pt": "sem modelo configurado",
+    },
+    "el cupo gratuito de investigaciones de hoy": {
+        "en": "today's free research quota",
+        "fr": "le quota gratuit de recherches du jour",
+        "de": "das heutige kostenlose Recherche-Kontingent",
+        "pt": "a quota gratuita de pesquisas de hoje",
+    },
+    "tu cupo de investigaciones de hoy": {
+        "en": "your research quota for today",
+        "fr": "votre quota de recherches du jour",
+        "de": "dein heutiges Recherche-Kontingent",
+        "pt": "a tua quota de pesquisas de hoje",
+    },
+}
+_DEMO_TEXTS: dict[Language, dict[str, str]] = {
+    "es": {
+        "tail": "se reproduce una investigación grabada sobre «{recorded}». No se llama a ningún modelo.",
+        "quota": "Se ha agotado {reason}, así que en lugar de investigar «{requested}» {tail}",
+        "prefix": "Modo demostración",
+        "asked": "{prefix}: pediste «{requested}», pero {tail}",
+    },
+    "en": {
+        "tail": "a recorded research run on “{recorded}” is replayed. No model is called.",
+        "quota": "{reason} has run out, so instead of researching “{requested}” {tail}",
+        "prefix": "Demo mode",
+        "asked": "{prefix}: you asked for “{requested}”, but {tail}",
+    },
+    "fr": {
+        "tail": "une recherche enregistrée sur « {recorded} » est rejouée. Aucun modèle n’est appelé.",
+        "quota": "{reason} est épuisé : au lieu de rechercher « {requested} », {tail}",
+        "prefix": "Mode démo",
+        "asked": "{prefix} : vous avez demandé « {requested} », mais {tail}",
+    },
+    "de": {
+        "tail": "eine aufgezeichnete Recherche zu „{recorded}“ wird abgespielt. Es wird kein Modell aufgerufen.",
+        "quota": "{reason} ist aufgebraucht, daher wird statt „{requested}“ {tail}",
+        "prefix": "Demo-Modus",
+        "asked": "{prefix}: Du hast „{requested}“ angefragt, aber {tail}",
+    },
+    "pt": {
+        "tail": "reproduz-se uma pesquisa gravada sobre «{recorded}». Nenhum modelo é chamado.",
+        "quota": "Esgotou-se {reason}, por isso em vez de pesquisar «{requested}» {tail}",
+        "prefix": "Modo demonstração",
+        "asked": "{prefix}: pediste «{requested}», mas {tail}",
+    },
+}
+
+
+def demo_notice(
+    requested: str, recorded: str, reason: str | None = None, lang: Language = "es"
+) -> str:
     """Aviso inicial: deja claro que es una grabación, sobre qué tema y, si procede, por qué."""
-    tail = (
-        f"se reproduce una investigación grabada sobre «{recorded}». No se llama a ningún modelo."
-    )
+    texts = _DEMO_TEXTS[lang]
+    tail = texts["tail"].format(recorded=recorded)
+    shown_reason = _DEMO_REASONS.get(reason or "", {}).get(lang, reason) if reason else None
     if reason is not None and "cupo" in reason:
-        return f"Se ha agotado {reason}, así que en lugar de investigar «{requested}» {tail}"
-    prefix = f"Modo demostración ({reason})" if reason else "Modo demostración"
+        return texts["quota"].format(reason=shown_reason, requested=requested, tail=tail)
+    prefix = f"{texts['prefix']} ({shown_reason})" if shown_reason else texts["prefix"]
     if requested.strip().lower() == recorded.strip().lower():
         return f"{prefix}: {tail}"
-    return f"{prefix}: pediste «{requested}», pero {tail}"
+    return texts["asked"].format(prefix=prefix, requested=requested, tail=tail)

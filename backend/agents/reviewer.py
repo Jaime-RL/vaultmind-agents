@@ -13,6 +13,7 @@ from agents.prompts import REVIEWER
 from agents.researcher import Finding
 from agents.writer import evidence, note_body
 from app.contracts import Proposal
+from app.i18n import language_instruction, tr
 from llm import LLMError
 from router import SmartRoute, require_json_object
 from router.validators import strip_code_fence
@@ -40,7 +41,9 @@ async def review_notes(
         try:
             reviews.append(await review_note(proposal, finding, router, emitter))
         except LLMError as exc:
-            await emitter.thought("reviewer", f"No pude revisar «{proposal.title}»: {exc}")
+            await emitter.thought(
+                "reviewer", tr(emitter.lang, "reviewer.failed", title=proposal.title, error=exc)
+            )
     return reviews
 
 
@@ -57,7 +60,13 @@ async def review_note(
         agent="reviewer",
         task="verify_claims",
         messages=[
-            {"role": "system", "content": REVIEWER},
+            {
+                "role": "system",
+                # Los problemas los lee el usuario en el panel: en el idioma de la interfaz.
+                "content": REVIEWER
+                + language_instruction(emitter.lang)
+                + ' This applies to the texts in "issues".',
+            },
             {
                 "role": "user",
                 "content": f"EVIDENCIA\n{proof}\n\nNOTA\n{note_body(proposal.markdown)}",
@@ -75,12 +84,14 @@ async def review_note(
     review = Review(proposal.id, claims, supported, issues)
 
     await emitter.tool_result(
-        "reviewer", "verify_claims", f"{supported} de {claims} afirmaciones con respaldo"
+        "reviewer",
+        "verify_claims",
+        tr(emitter.lang, "reviewer.result", supported=supported, claims=claims),
     )
     if issues:
         await emitter.thought(
             "reviewer",
-            f"En «{proposal.title}» revisa antes de aprobar: " + "; ".join(issues),
+            tr(emitter.lang, "reviewer.issues", title=proposal.title, issues="; ".join(issues)),
         )
     return review
 

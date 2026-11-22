@@ -6,6 +6,10 @@ Flujo de una llamada:
                       └─ "slm" → SLM → ¿válida? ── sí ──────────→ respuesta
                                            └── no (LLMError) ──→ modelo grande (escalada)
 
+Respaldo: si el modelo grande no está disponible (error del proveedor, p. ej. el límite
+diario de tokens del plan gratuito de Groq) y el pequeño aún no lo ha intentado, la tarea
+la hace el pequeño. Peor nota que ninguna: antes, ese 429 detenía la investigación entera.
+
 Cada llamada deja un registro (TaskMetric) con modelo, tokens, coste, latencia
 y si hubo escalada. Con esos registros se calcula el ahorro frente a usar
 siempre el modelo grande.
@@ -100,8 +104,17 @@ class SmartRoute:
                 reason = f"el modelo pequeño falló ({exc}); se escala al modelo grande"
 
         if tier == "large":
-            # Si el modelo grande también falla, el error sube al agente: no hay más niveles.
-            response = await self._call(self.large_model, messages, tools, validate)
+            try:
+                response = await self._call(self.large_model, messages, tools, validate)
+            except RejectedResponse:
+                raise  # respondió, pero mal: el pequeño no lo hará mejor
+            except LLMError as exc:
+                if escalated:
+                    raise  # el pequeño ya falló: no hay más niveles
+                # El grande no está disponible: respaldo con el pequeño.
+                response = await self._call(self.slm_model, messages, tools, validate)
+                tier = "slm"
+                reason = f"el modelo grande no está disponible ({exc}); lo hace el pequeño"
 
         price = self.slm_price if tier == "slm" else self.large_price
         metric = TaskMetric(

@@ -235,3 +235,36 @@ def test_tool_validator():
     with pytest.raises(LLMError, match="desconocida"):
         bad = LLMResponse(tool_calls=[ToolCall(id="1", name="borrar_todo")])
         require_tool_call("search_arxiv")(bad)
+
+
+# --- Respaldo si el modelo grande no está disponible -------------------------
+
+
+async def test_large_unavailable_falls_back_to_slm():
+    """Regresión: el límite diario de Groq (429) del modelo grande detenía la investigación."""
+    router, fake = make_router([LLMError("429 rate limit (tokens per day)"), reply("nota")])
+
+    outcome = await route(router, "write_note")
+
+    assert [call.model for call in fake.calls] == ["large", "small"]
+    assert outcome.response.content == "nota"
+    assert outcome.metric.tier == "slm"
+    assert outcome.metric.escalated is False
+    assert "no está disponible" in outcome.reason
+
+
+async def test_no_fallback_when_the_slm_already_failed():
+    router, _ = make_router([LLMError("timeout"), LLMError("429")])
+
+    with pytest.raises(LLMError, match="429"):
+        await route(router, "summarize_paper")
+
+
+async def test_no_fallback_when_the_large_answer_is_rejected():
+    """Si el grande respondió pero el validador lo rechaza, no es un problema de cupo."""
+    router, fake = make_router([reply("sin json")])
+
+    with pytest.raises(LLMError):
+        await route(router, "write_note", validate=require_json_object("x"))
+
+    assert [call.model for call in fake.calls] == ["large"]

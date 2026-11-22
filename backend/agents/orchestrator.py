@@ -17,7 +17,8 @@ from agents.researcher import Finding, research
 from agents.reviewer import Review
 from agents.tools import Tool
 from agents.writer import ProposalCallback
-from app.contracts import Proposal, RunStats
+from app.contracts import ContentLanguage, Proposal, RunStats
+from app.i18n import resolve_language, tr
 from router import SmartRoute
 from vault import Vault
 
@@ -42,12 +43,21 @@ async def run_research(
     on_proposal: ProposalCallback | None = None,
     max_gaps: int = 3,
     clock: Callable[[], float] = time.monotonic,
+    language: ContentLanguage = "auto",
 ) -> ResearchResult | None:
     start = clock()
     result = ResearchResult()
+    # Idioma de las notas: el elegido o, con «auto», el del tema (si no se distingue, el de
+    # la interfaz). Los mensajes del panel van en emitter.lang.
+    lang = resolve_language(language, topic, ui=emitter.lang)
     try:
         result.gaps = await explore(
-            topic=topic, vault=vault, router=router, emitter=emitter, max_gaps=max_gaps
+            topic=topic,
+            vault=vault,
+            router=router,
+            emitter=emitter,
+            max_gaps=max_gaps,
+            lang=lang,
         )
         result.findings = await research(
             topic=topic,
@@ -67,12 +77,13 @@ async def run_research(
             router=router,
             emitter=emitter,
             on_proposal=on_proposal,
+            lang=lang,
         )
         result.proposals, result.reviews = editorial.proposals, editorial.reviews
     except AssertionError:
         raise  # fallo de un test (p. ej. guion de FakeLLMClient agotado): que se vea
     except Exception as exc:  # noqa: BLE001 — cualquier fallo debe cerrar el flujo con 'error'
-        await emitter.error(f"La investigación se detuvo: {exc}")
+        await emitter.error(tr(emitter.lang, "run.stopped", error=exc))
         return None
 
     totals = router.totals(emitter.run_id)

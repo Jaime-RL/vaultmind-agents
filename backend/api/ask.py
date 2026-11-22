@@ -24,7 +24,10 @@ async def ask(
     """Responde una pregunta con las notas de la bóveda y las cita como [[nota]]."""
     try:
         return await services.runs.ask(
-            body.question.strip(), client_ip=client_ip(request), owner=owner_of(request, settings)
+            body.question.strip(),
+            client_ip=client_ip(request),
+            owner=owner_of(request, settings),
+            language=body.language,
         )
     except VaultNotFoundError as exc:
         raise HTTPException(status_code=404, detail="Bóveda no encontrada") from exc

@@ -9,7 +9,12 @@
       "additionalProperties": false,
       "required": ["question"],
       "properties": {
-        "question": { "type": "string", "minLength": 3, "maxLength": 500 }
+        "question": { "type": "string", "minLength": 3, "maxLength": 500 },
+        "language": {
+          "description": "Idioma de la respuesta. auto (por defecto) = el idioma de la pregunta.",
+          "type": "string",
+          "enum": ["auto", "es", "en", "fr", "de", "pt"]
+        }
       }
     },
     "AskCitation": {
@@ -38,7 +43,12 @@
         },
         "tier": { "anyOf": [{ "type": "string", "enum": ["slm", "large"] }, { "type": "null" }] },
         "escalated": { "type": "boolean", "description": "true si el SLM falló y respondió el modelo grande." },
-        "cost_usd": { "type": "number", "minimum": 0 }
+        "cost_usd": { "type": "number", "minimum": 0 },
+        "language": {
+          "description": "Idioma en que se respondió (el elegido o el detectado).",
+          "type": "string",
+          "enum": ["es", "en", "fr", "de", "pt"]
+        }
       }
     }
   }

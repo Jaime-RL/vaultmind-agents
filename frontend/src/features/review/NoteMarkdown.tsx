@@ -1,21 +1,23 @@
 import { useMemo } from 'react'
 import Markdown, { defaultUrlTransform, type Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { useI18n } from '../../i18n/context'
+import type { MessageKey } from '../../i18n/messages'
 import { WIKILINK_SCHEME, wikilinksToMarkdown, wikilinkTarget } from './wikilinks'
 
 // Avisos de Obsidian: «> [!warning] Texto». react-markdown los ve como una cita normal y se
 // mostraba «[!warning]» tal cual; aquí los convertimos en un aviso con su título.
 const CALLOUT_RE = /^\[!([a-z]+)\][+-]?\s*/i
-const CALLOUT_TITLES: Record<string, string> = {
-  warning: 'Atención',
-  caution: 'Atención',
-  danger: 'Peligro',
-  error: 'Error',
-  note: 'Nota',
-  info: 'Info',
-  tip: 'Consejo',
-  success: 'Hecho',
-  question: 'Pregunta',
+const CALLOUT_TITLE_KEYS: Record<string, MessageKey> = {
+  warning: 'callout.warning',
+  caution: 'callout.warning',
+  danger: 'callout.danger',
+  error: 'callout.error',
+  note: 'callout.note',
+  info: 'callout.info',
+  tip: 'callout.tip',
+  success: 'callout.success',
+  question: 'callout.question',
 }
 
 interface HastNode {
@@ -45,6 +47,7 @@ interface Props {
  * dejamos pasar además nuestro esquema interno wikilink:.
  */
 export function NoteMarkdown({ markdown, existing }: Props) {
+  const { t } = useI18n()
   const components = useMemo<Components>(
     () => ({
       blockquote: ({ node, children }) => {
@@ -55,7 +58,7 @@ export function NoteMarkdown({ markdown, existing }: Props) {
         return (
           <aside className={`callout callout--${kind}`} role="note">
             <p>
-              <span className="callout__title">{CALLOUT_TITLES[kind] ?? kind}:</span>{' '}
+              <span className="callout__title">{CALLOUT_TITLE_KEYS[kind] ? t(CALLOUT_TITLE_KEYS[kind]) : kind}:</span>{' '}
               {text.slice(match[0].length)}
             </p>
           </aside>
@@ -82,7 +85,7 @@ export function NoteMarkdown({ markdown, existing }: Props) {
         )
       },
     }),
-    [existing],
+    [existing, t],
   )
 
   return (

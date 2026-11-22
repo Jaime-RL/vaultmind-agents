@@ -53,7 +53,7 @@ CASES = [
         c.ResearchRequest,
         "research.schema.json",
         "ResearchRequest",
-        c.ResearchRequest(topic="SLMs para chatbots de clima"),
+        c.ResearchRequest(topic="SLMs for climate chatbots", language="en", ui_language="fr"),
     ),
     (
         c.ResearchResponse,
@@ -136,6 +136,7 @@ CASES = [
             status="pending",
             created_at=NOW,
             review=c.ProposalReview(claims=5, supported=4, issues=["la cifra"], revised=True),
+            language="es",
         ),
     ),
     (
@@ -150,7 +151,12 @@ CASES = [
         "ProposalAction",
         c.ProposalAction(action="approve", markdown="# Editada"),
     ),
-    (c.AskRequest, "ask.schema.json", "AskRequest", c.AskRequest(question="¿Qué es LoRA?")),
+    (
+        c.AskRequest,
+        "ask.schema.json",
+        "AskRequest",
+        c.AskRequest(question="What is LoRA?", language="auto"),
+    ),
     (
         c.AskResponse,
         "ask.schema.json",
@@ -162,6 +168,7 @@ CASES = [
             tier="slm",
             escalated=False,
             cost_usd=0.0001,
+            language="en",
         ),
     ),
     (

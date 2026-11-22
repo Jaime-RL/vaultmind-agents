@@ -19,7 +19,7 @@ from pathlib import Path
 
 from agents import Emitter, Tool, run_research
 from agents.asker import answer_question
-from app.contracts import AskResponse
+from app.contracts import AskResponse, ContentLanguage, Language
 from router import SmartRoute
 from runs.demo import DemoRun, play_demo
 from runs.sink import LiveRun, RunSink
@@ -91,7 +91,12 @@ class RunManager:
         self._tasks: set[asyncio.Task] = set()
 
     async def start(
-        self, topic: str, client_ip: str | None = None, owner: str | None = None
+        self,
+        topic: str,
+        client_ip: str | None = None,
+        owner: str | None = None,
+        language: ContentLanguage = "auto",
+        ui_language: Language = "es",
     ) -> str:
         """Lanza una investigación. `owner` (modo público) es la sesión anónima del visitante:
         sus propuestas solo las ve él, y su bóveda incluye las notas que ya ha aprobado."""
@@ -100,11 +105,11 @@ class RunManager:
                 f"Ya hay {self.max_concurrent} investigaciones en curso; inténtalo en un momento"
             )
         if self.force_demo and self.demo is not None:
-            return self._start_demo(topic, client_ip, owner=owner)
+            return self._start_demo(topic, client_ip, owner=owner, lang=ui_language)
         if self.router_factory is None:
             if self.demo is not None:
                 return self._start_demo(
-                    topic, client_ip, reason="sin modelo configurado", owner=owner
+                    topic, client_ip, reason="sin modelo configurado", owner=owner, lang=ui_language
                 )
             raise LLMNotConfiguredError(
                 "Falta configurar el LLM: define LLM_API_KEY, SLM_MODEL y LARGE_MODEL"
@@ -112,7 +117,9 @@ class RunManager:
         quota = self._quota_problem(client_ip)
         if quota is not None:
             if self.demo is not None:
-                return self._start_demo(topic, client_ip, reason=quota, owner=owner)
+                return self._start_demo(
+                    topic, client_ip, reason=quota, owner=owner, lang=ui_language
+                )
             raise DailyQuotaExceededError(f"Se ha agotado {quota}; vuelve mañana")
         vault = parse_vault(self.vault_path, self.approved_notes(owner))  # o VaultNotFoundError
 
@@ -123,7 +130,7 @@ class RunManager:
         router = self.router_factory()
         # Cada métrica se guarda en cuanto se produce (para /api/metrics).
         router.on_record = self.store.add_metric
-        emitter = Emitter(run_id, RunSink(run_id, self.store, live))
+        emitter = Emitter(run_id, RunSink(run_id, self.store, live), lang=ui_language)
 
         async def save_proposal(proposal) -> None:
             self.store.save_proposal(proposal)
@@ -131,6 +138,7 @@ class RunManager:
         task = asyncio.create_task(
             run_research(
                 topic=topic,
+                language=language,
                 vault=vault,
                 router=router,
                 emitter=emitter,
@@ -160,7 +168,11 @@ class RunManager:
         return None
 
     async def ask(
-        self, question: str, client_ip: str | None = None, owner: str | None = None
+        self,
+        question: str,
+        client_ip: str | None = None,
+        owner: str | None = None,
+        language: ContentLanguage = "auto",
     ) -> AskResponse:
         """Responde una pregunta con las notas de la bóveda (y las aprobadas del visitante).
 
@@ -182,7 +194,7 @@ class RunManager:
             )
         try:
             return await answer_question(
-                question=question, vault=vault, router=router, run_id=run_id
+                question=question, vault=vault, router=router, run_id=run_id, language=language
             )
         finally:
             if use_llm:
@@ -214,6 +226,7 @@ class RunManager:
         client_ip: str | None = None,
         reason: str | None = None,
         owner: str | None = None,
+        lang: Language = "es",
     ) -> str:
         # Una demo nueva sustituye a las notas pendientes de demos anteriores (son las mismas).
         self.store.delete_pending_demo_proposals(owner)
@@ -222,7 +235,9 @@ class RunManager:
         live = self._live[run_id] = LiveRun()
         sink = RunSink(run_id, self.store, live)
         self._track(
-            asyncio.create_task(play_demo(self.demo, run_id, topic, sink, reason), name=run_id)
+            asyncio.create_task(
+                play_demo(self.demo, run_id, topic, sink, reason, lang), name=run_id
+            )
         )
         return run_id
 

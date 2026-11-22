@@ -31,6 +31,10 @@
         "review": {
           "description": "Resultado del Revisor. Ausente o null si la nota no se pudo revisar.",
           "anyOf": [{ "$ref": "#/$defs/ProposalReview" }, { "type": "null" }]
+        },
+        "language": {
+          "description": "Idioma en que está escrita la nota. Ausente o null en notas antiguas.",
+          "anyOf": [{ "type": "string", "enum": ["es", "en", "fr", "de", "pt"] }, { "type": "null" }]
         }
       }
     },

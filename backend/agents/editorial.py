@@ -15,7 +15,8 @@ from agents.events import Emitter
 from agents.researcher import Finding
 from agents.reviewer import Review, needs_revision, review_note
 from agents.writer import ProposalCallback, draft_note, publish
-from app.contracts import Proposal, ProposalReview
+from app.contracts import Language, Proposal, ProposalReview
+from app.i18n import tr
 from llm import LLMError
 from router import SmartRoute
 from vault import Vault
@@ -39,7 +40,9 @@ async def write_and_review(
     router: SmartRoute,
     emitter: Emitter,
     on_proposal: ProposalCallback | None = None,
+    lang: Language = "es",
 ) -> EditorialResult:
+    """`lang`: idioma de las notas. Los mensajes del panel van en `emitter.lang`."""
     titles = sorted(note.title for note in vault.notes.values())[:MAX_TITLES_IN_PROMPT]
     resolver = LinkResolver(list(vault.notes))
     result = EditorialResult(proposals=[], reviews=[])
@@ -47,9 +50,13 @@ async def write_and_review(
     for finding in findings:
         name = finding.gap.name
         try:
-            proposal = await draft_note(topic, finding, titles, resolver, router, emitter)
+            proposal = await draft_note(
+                topic, finding, titles, resolver, router, emitter, lang=lang
+            )
         except LLMError as exc:
-            await emitter.thought("writer", f"No pude redactar «{name}»: {exc}")
+            await emitter.thought(
+                "writer", tr(emitter.lang, "writer.failed", title=name, error=exc)
+            )
             continue
 
         first_draft = proposal
@@ -58,8 +65,13 @@ async def write_and_review(
             assert review is not None  # needs_revision ya lo garantiza; ayuda al tipado
             await emitter.thought(
                 "writer",
-                f"El Revisor solo respalda {review.supported} de {review.claims} afirmaciones: "
-                f"corrijo «{name}».",
+                tr(
+                    emitter.lang,
+                    "writer.revising",
+                    supported=review.supported,
+                    claims=review.claims,
+                    title=name,
+                ),
             )
             try:
                 revised = await draft_note(
@@ -71,9 +83,12 @@ async def write_and_review(
                     emitter,
                     previous=proposal,
                     issues=review.issues,
+                    lang=lang,
                 )
             except LLMError as exc:
-                await emitter.thought("writer", f"No pude corregir «{name}»: {exc}")
+                await emitter.thought(
+                    "writer", tr(emitter.lang, "writer.fix_failed", title=name, error=exc)
+                )
             else:
                 result.revisions += 1
                 proposal = revised
@@ -104,5 +119,7 @@ async def safe_review(
     try:
         return await review_note(proposal, finding, router, emitter)
     except LLMError as exc:
-        await emitter.thought("reviewer", f"No pude revisar «{proposal.title}»: {exc}")
+        await emitter.thought(
+            "reviewer", tr(emitter.lang, "reviewer.failed", title=proposal.title, error=exc)
+        )
         return None

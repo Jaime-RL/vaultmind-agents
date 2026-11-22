@@ -15,7 +15,8 @@ from datetime import UTC, datetime
 from agents.events import Emitter
 from agents.prompts import WRITER, WRITER_NO_SOURCES, WRITER_REVISION
 from agents.researcher import Finding
-from app.contracts import Proposal
+from app.contracts import Language, Proposal
+from app.i18n import NOTE_SECTION_MARKERS, language_instruction, tr
 from llm import LLMError, LLMResponse
 from router import SmartRoute
 from vault import Vault
@@ -56,7 +57,9 @@ async def write_notes(
                 await write_note(topic, finding, titles, resolver, router, emitter, on_proposal)
             )
         except LLMError as exc:
-            await emitter.thought("writer", f"No pude redactar «{finding.gap.name}»: {exc}")
+            await emitter.thought(
+                "writer", tr(emitter.lang, "writer.failed", title=finding.gap.name, error=exc)
+            )
     return proposals
 
 
@@ -85,14 +88,16 @@ async def draft_note(
     *,
     previous: Proposal | None = None,
     issues: list[str] | None = None,
+    lang: Language = "es",
 ) -> Proposal:
     """Redacta la nota (o la reescribe si se pasa `previous` + `issues`) sin publicarla."""
     title = finding.gap.name
     if previous is None:
-        await emitter.thought("writer", f"Redacto la nota «{title}».")
+        await emitter.thought("writer", tr(emitter.lang, "writer.start", title=title))
     system = WRITER.replace("{title}", title)
     if not finding.sources:
-        system += WRITER_NO_SOURCES
+        system += WRITER_NO_SOURCES.format(warning=tr(lang, "note.warning"))
+    system += language_instruction(lang)
     user = (
         f"Tema de la investigación: {topic}\n"
         f"Concepto: {title}\n\n"
@@ -115,7 +120,9 @@ async def draft_note(
     await emitter.route(outcome.decision_event())
 
     body = normalize_wikilinks(strip_markdown_fence(outcome.response.content or ""))
-    markdown = body.rstrip() + "\n" + sources_section(finding) + mentioned_in_section(finding)
+    markdown = (
+        body.rstrip() + "\n" + sources_section(finding, lang) + mentioned_in_section(finding, lang)
+    )
     return Proposal(
         # Una reescritura conserva el id: para la interfaz es la misma nota.
         id=previous.id if previous is not None else f"p-{uuid.uuid4().hex[:8]}",
@@ -128,6 +135,7 @@ async def draft_note(
         model=outcome.metric.model,
         status="pending",
         created_at=datetime.now(UTC),
+        language=lang,
     )
 
 
@@ -151,21 +159,28 @@ def evidence(finding: Finding, max_chars: int = 800) -> str:
 
 
 def note_body(markdown: str) -> str:
-    """La nota sin las secciones que añade el código (fuentes y «Mencionada en»)."""
-    return re.split(r"\n## Fuentes\n|\n\*Mencionada en:", markdown, maxsplit=1)[0].strip()
+    """La nota sin las secciones que añade el código (fuentes y «Mencionada en»), en
+    cualquiera de los idiomas."""
+    cut = len(markdown)
+    for marker in NOTE_SECTION_MARKERS:
+        found = markdown.find(marker)
+        if found != -1:
+            cut = min(cut, found)
+    return markdown[:cut].strip()
 
 
-def sources_section(finding: Finding) -> str:
+def sources_section(finding: Finding, lang: Language = "es") -> str:
+    heading = f"\n## {tr(lang, 'note.sources')}\n\n"
     if not finding.sources:
-        return "\n## Fuentes\n\n- Sin fuentes verificadas: revisa esta nota con cuidado.\n"
+        return heading + f"- {tr(lang, 'note.no_sources')}\n"
     lines = "\n".join(f"- [{s.title}]({s.url})" for s in finding.sources)
-    return f"\n## Fuentes\n\n{lines}\n"
+    return heading + lines + "\n"
 
 
-def mentioned_in_section(finding: Finding) -> str:
+def mentioned_in_section(finding: Finding, lang: Language = "es") -> str:
     """Enlaza la nota nueva con las notas que la mencionaban: así queda conectada en el grafo."""
     notes = ", ".join(f"[[{note_id}]]" for note_id in finding.gap.mentioned_in)
-    return f"\n*Mencionada en: {notes}. Propuesta por VaultMind.*\n" if notes else ""
+    return f"\n*{tr(lang, 'note.mentioned', notes=notes)}*\n" if notes else ""
 
 
 def resolve_links(markdown: str, resolver: LinkResolver) -> list[str]:

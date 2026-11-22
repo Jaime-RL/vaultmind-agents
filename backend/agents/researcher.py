@@ -15,6 +15,7 @@ from agents.explorer import Gap
 from agents.loop import run_agent
 from agents.prompts import RESEARCHER
 from agents.tools import Tool, ToolOutput
+from app.i18n import tr
 from llm import LLMError
 from router import SmartRoute, require_json_object
 from router.validators import strip_code_fence
@@ -50,14 +51,15 @@ async def research(
         try:
             finding = await research_gap(topic, gap, router, emitter, search_tool, extra_tools)
         except LLMError as exc:
-            await emitter.thought("researcher", f"No pude investigar «{gap.name}»: {exc}")
+            await emitter.thought(
+                "researcher", tr(emitter.lang, "researcher.failed", gap=gap.name, error=exc)
+            )
             continue
         if not finding.sources and not gap.is_topic:
             # Una laguna «relacionada» sin ningún paper que la respalde suele ser una relación
             # mal elegida por el Explorador: mejor no proponer una nota escrita de memoria.
             await emitter.thought(
-                "researcher",
-                f"Descarto «{gap.name}»: no encontré fuentes que la relacionen con el tema.",
+                "researcher", tr(emitter.lang, "researcher.dropped", gap=gap.name)
             )
             continue
         findings.append(finding)
@@ -88,13 +90,19 @@ async def research_gap(
         if query and query in queries:
             # El modelo repite una búsqueda: se lo decimos en lugar de gastar otra petición.
             return ToolOutput(
-                summary="búsqueda repetida",
+                summary=tr(emitter.lang, "tool.repeated"),
                 data={
                     "note": "Ya hiciste esta búsqueda: usa esos resultados o cambia los términos."
                 },
             )
         queries.add(query)
         output = await search.handler(args)
+        if search.name in TOOL_SUMMARY_KEYS and isinstance(output.data, list):
+            # El resumen lo ve el usuario en el panel: en el idioma de la interfaz.
+            output = ToolOutput(
+                summary=tr(emitter.lang, TOOL_SUMMARY_KEYS[search.name], n=len(output.data)),
+                data=output.data,
+            )
         for item in output.data:
             if isinstance(item, dict) and item.get("url"):
                 seen[source_key(item["url"])] = Source(
@@ -104,7 +112,9 @@ async def research_gap(
 
     tools = [tracked(t) for t in (search_tool, *extra_tools)]
 
-    await emitter.thought("researcher", f"Investigo «{gap.name}» para el tema «{topic}».")
+    await emitter.thought(
+        "researcher", tr(emitter.lang, "researcher.start", gap=gap.name, topic=topic)
+    )
     response = await run_agent(
         agent="researcher",
         task="summarize_paper",
@@ -125,10 +135,16 @@ async def research_gap(
     sources = verified_sources(answer.get("sources", []), seen)
     summary = str(answer.get("summary", "")).strip()
     await emitter.thought(
-        "researcher", f"«{gap.name}»: resumen listo con {len(sources)} fuentes verificadas."
+        "researcher", tr(emitter.lang, "researcher.done", gap=gap.name, n=len(sources))
     )
     return Finding(gap=gap, summary=summary, sources=sources)
 
+
+# Resumen traducido de lo que devolvió cada herramienta de búsqueda.
+TOOL_SUMMARY_KEYS = {
+    "search_arxiv": "tool.arxiv",
+    "search_semantic_scholar": "tool.semantic_scholar",
+}
 
 ARXIV_ID = re.compile(r"arxiv\.org/(?:abs|pdf)/([^\s?#]+?)(?:v\d+)?(?:\.pdf)?/?$", re.IGNORECASE)
 

@@ -17,6 +17,8 @@ from dataclasses import dataclass, field
 
 from agents.events import Emitter
 from agents.prompts import EXPLORER
+from app.contracts import Language
+from app.i18n import language_instruction, tr
 from router import SmartRoute, require_json_object
 from router.validators import strip_code_fence
 from vault import Vault
@@ -37,18 +39,24 @@ class Gap:
 
 
 async def explore(
-    *, topic: str, vault: Vault, router: SmartRoute, emitter: Emitter, max_gaps: int = 3
+    *,
+    topic: str,
+    vault: Vault,
+    router: SmartRoute,
+    emitter: Emitter,
+    max_gaps: int = 3,
+    lang: Language = "es",
 ) -> list[Gap]:
-    await emitter.thought(
-        "explorer",
-        f"Leo la bóveda: {len(vault.notes)} notas. Busco conceptos enlazados que no tienen nota.",
-    )
+    """`lang`: idioma del contenido; el título de la nota del tema se escribe en él."""
+    await emitter.thought("explorer", tr(emitter.lang, "explorer.reading", n=len(vault.notes)))
     await emitter.tool_call("explorer", "find_gaps", {})
     gaps = dict(vault.unresolved_links())
     await emitter.tool_result(
         "explorer",
         "find_gaps",
-        f"{len(gaps)} lagunas: {', '.join(gaps)}" if gaps else "ninguna laguna",
+        tr(emitter.lang, "explorer.gaps", n=len(gaps), names=", ".join(gaps))
+        if gaps
+        else tr(emitter.lang, "explorer.no_gaps"),
     )
     ranked = sorted(gaps, key=lambda name: (-len(gaps[name]), name))  # más mencionadas primero
 
@@ -64,7 +72,12 @@ async def explore(
             agent="explorer",
             task="find_gaps",
             messages=[
-                {"role": "system", "content": EXPLORER.format(max_related=max(max_gaps - 1, 0))},
+                {
+                    "role": "system",
+                    "content": EXPLORER.format(max_related=max(max_gaps - 1, 0))
+                    + language_instruction(lang)
+                    + " Translate only the topic_note title; copy gap names exactly.",
+                },
                 {"role": "user", "content": f"Tema: {topic}\n\nLagunas:\n{candidates}"},
             ],
             validate=require_json_object("selected"),
@@ -83,7 +96,7 @@ async def explore(
         if all(name.lower() != c.name.lower() for c in concepts):
             concepts.append(Gap(name=name, mentioned_in=gaps[name]))
 
-    await emitter.thought("explorer", explanation(topic_title, concepts, reasoning))
+    await emitter.thought("explorer", explanation(topic_title, concepts, reasoning, emitter.lang))
     return concepts
 
 
@@ -97,13 +110,15 @@ def topic_concept(title: str, gaps: dict[str, list[str]], vault: Vault) -> list[
     return [Gap(name=title, mentioned_in=[], is_topic=True)] if title else []
 
 
-def explanation(topic_title: str, concepts: list[Gap], reasoning: str) -> str:
+def explanation(
+    topic_title: str, concepts: list[Gap], reasoning: str, lang: Language = "es"
+) -> str:
     names = [c.name for c in concepts]
     if not names:
-        return f"Ya tienes una nota sobre «{topic_title}» y no hay lagunas relacionadas."
-    text = f"Investigo: {', '.join(names)}."
+        return tr(lang, "explorer.nothing", title=topic_title)
+    text = tr(lang, "explorer.investigating", names=", ".join(names))
     if not any(c.name.lower() == topic_title.lower() for c in concepts):
-        text = f"Ya tienes una nota sobre «{topic_title}». " + text
+        text = tr(lang, "explorer.already", title=topic_title) + " " + text
     return text + (f" {reasoning}" if reasoning else "")
 
 

@@ -14,14 +14,18 @@ import { useMetrics } from './features/router-panel/useMetrics'
 import { useProposals } from './features/review/useProposals'
 import './App.css'
 import { mergeProposed } from './features/graph/graphData'
+import { InterfaceLanguageSelect } from './components/LanguageSelect'
+import type { ContentLanguage } from './api/contract.gen'
+import { useI18n } from './i18n/context'
+import type { MessageKey } from './i18n/messages'
 
 type BackendStatus = 'checking' | 'ok' | 'down'
 
-const STATUS_LABEL: Record<BackendStatus, string> = {
-  checking: 'Comprobando backend…',
-  ok: 'Backend conectado',
-  down: 'Backend no disponible',
-}
+const STATUS_KEY = {
+  checking: 'app.backend.checking',
+  ok: 'app.backend.ok',
+  down: 'app.backend.down',
+} as const satisfies Record<BackendStatus, MessageKey>
 
 function useBackendStatus(): BackendStatus {
   const [status, setStatus] = useState<BackendStatus>('checking')
@@ -41,6 +45,7 @@ function useBackendStatus(): BackendStatus {
 
 export default function App() {
   const status = useBackendStatus()
+  const { t } = useI18n()
   const { state: vaultState, reload: reloadVault } = useVaultGraph()
   const run = useResearchRun()
   const [tab, setTab] = useState('agents')
@@ -51,9 +56,9 @@ export default function App() {
   const focusId = askFocus ?? run.state.proposed.at(-1)?.id
   const { start } = run
   const startResearch = useCallback(
-    (topic: string) => {
+    (topic: string, language?: ContentLanguage) => {
       setAskFocus(undefined)
-      start(topic)
+      start(topic, language)
     },
     [start],
   )
@@ -106,16 +111,19 @@ export default function App() {
       <header className="topbar">
         <div className="topbar__brand">
           <h1>VaultMind</h1>
-          <p className="topbar__tagline">Agentes que investigan y hacen crecer tu bóveda de Obsidian</p>
+          <p className="topbar__tagline">{t('app.tagline')}</p>
         </div>
         <ResearchForm busy={busy} onSubmit={startResearch} />
-        <p className={`status status--${status}`} role="status" aria-label="Estado del backend">
-          {STATUS_LABEL[status]}
-        </p>
+        <div className="topbar__end">
+          <InterfaceLanguageSelect />
+          <p className={`status status--${status}`} role="status" aria-label={t('app.backend.label')}>
+            {t(STATUS_KEY[status])}
+          </p>
+        </div>
       </header>
 
       <main className="workspace">
-        <section className="workspace__graph" aria-label="Grafo de la bóveda">
+        <section className="workspace__graph" aria-label={t('app.graph')}>
           <GraphView
             state={vaultState}
             proposed={graphProposed}
@@ -129,18 +137,18 @@ export default function App() {
         </section>
         <aside className="workspace__side">
           <Tabs
-            label="Paneles"
+            label={t('app.panels')}
             active={tab}
             onChange={setTab}
             tabs={[
               {
                 id: 'agents',
-                label: 'Agentes',
+                label: t('tab.agents'),
                 content: <AgentsPanel state={run.state} onReconnect={run.reconnect} onExample={startResearch} />,
               },
               {
                 id: 'review',
-                label: 'Notas',
+                label: t('tab.review'),
                 badge: pendingCount,
                 content: (
                   <ReviewPanel
@@ -159,12 +167,12 @@ export default function App() {
               },
               {
                 id: 'ask',
-                label: 'Preguntar',
+                label: t('tab.ask'),
                 content: <AskPanel existing={existingNotes} onFocusNote={setAskFocus} />,
               },
               {
                 id: 'router',
-                label: 'Router',
+                label: t('tab.router'),
                 content: (
                   <RouterPanel
                     state={metrics}

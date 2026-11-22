@@ -14,7 +14,7 @@ puede volver a reproducir aunque el servidor se haya reiniciado.
 import asyncio
 import logging
 import uuid
-from collections.abc import AsyncIterator, Callable
+from collections.abc import AsyncIterator, Callable, Sequence
 from pathlib import Path
 
 from agents import Emitter, Tool, run_research
@@ -54,6 +54,7 @@ class RunManager:
         vault_path: Path,
         router_factory: Callable[[], SmartRoute] | None,
         search_tool: Tool,
+        extra_tools: Sequence[Tool] = (),
         max_gaps: int = 3,
         demo: DemoRun | None = None,
         force_demo: bool = False,
@@ -69,6 +70,7 @@ class RunManager:
         self.vault_path = vault_path
         self.router_factory = router_factory
         self.search_tool = search_tool
+        self.extra_tools = tuple(extra_tools)  # otras fuentes (Semantic Scholar)
         self.max_gaps = max_gaps
         # La demo se usa siempre si force_demo (DEMO_MODE=true); si no, solo como respaldo
         # cuando no hay LLM configurado o se agota el cupo diario.
@@ -133,6 +135,7 @@ class RunManager:
                 router=router,
                 emitter=emitter,
                 search_tool=self.search_tool,
+                extra_tools=self.extra_tools,
                 on_proposal=save_proposal,
                 max_gaps=self.max_gaps,
             ),

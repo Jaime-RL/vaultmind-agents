@@ -63,6 +63,10 @@ class Settings(BaseSettings):
     # URL pública: cada visitante (cookie anónima) ve y resuelve solo SUS propuestas, y lo que
     # aprueba se guarda en la base de datos para él, sin escribir en la bóveda compartida.
     public_mode: bool = False
+    # Segunda fuente del Investigador (año, revista y citas). Sin clave funciona con un límite
+    # compartido; si responde 429, el Investigador sigue solo con arXiv.
+    semantic_scholar_enabled: bool = True
+    semantic_scholar_api_key: str | None = None
 
     # Carpeta con el frontend compilado (dist/ de Vite). Si existe, FastAPI la sirve en "/"
     # junto a la API: en producción todo es un solo servicio, sin CORS. La define el Dockerfile.

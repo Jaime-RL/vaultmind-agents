@@ -9,6 +9,7 @@ from dataclasses import dataclass
 import httpx
 
 from agents import ArxivClient
+from agents.semantic_scholar import SemanticScholarClient
 from app.config import REPO_ROOT, Settings
 from llm.openai_compat import OpenAICompatClient
 from router import ModelPrice, SmartRoute
@@ -31,6 +32,7 @@ def build_services(
     llm_http: httpx.AsyncClient | None = None,
     arxiv_http: httpx.AsyncClient | None = None,
     arxiv_min_interval: float = 3.0,
+    semantic_scholar_http: httpx.AsyncClient | None = None,
 ) -> Services:
     """Los parámetros con * solo se usan en tests de punta a punta, para simular la red."""
     store = Store(settings.database_path)
@@ -41,6 +43,13 @@ def build_services(
             vault_path=settings.vault_path,
             router_factory=router_factory(settings, llm_http),
             search_tool=ArxivClient(http=arxiv_http, min_interval=arxiv_min_interval).as_tool(),
+            extra_tools=[
+                SemanticScholarClient(
+                    http=semantic_scholar_http, api_key=settings.semantic_scholar_api_key
+                ).as_tool()
+            ]
+            if settings.semantic_scholar_enabled
+            else [],
             demo=load_demo(settings),
             force_demo=settings.demo_mode,
             max_concurrent=settings.max_concurrent_runs,

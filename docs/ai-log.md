@@ -131,3 +131,9 @@ Materia prima para la sección «Cómo se construyó con IA» del README. Apunta
 - **Qué funcionó:** «Editar» abre la nota en un editor y el botón pasa a «Aprobar con cambios»; el backend guarda la versión del usuario y recalcula los enlaces del grafo a partir de sus `[[wikilinks]]`. «Profundizar» lanza una investigación sobre la nota. La pantalla de bienvenida explica los cuatro agentes y SmartRoute, con tres temas de ejemplo en un clic (útil para el vídeo). Al recargar la página, las notas pendientes guardadas vuelven a aparecer en el grafo.
 - **Qué costó o falló:** las capturas de Playwright mostraron que «Profundizar» se cortaba en la tarjeta: los tests no lo ven. Se arregló dejando que los botones pasen a otra línea.
 - **Qué cambiaría:** «Exportar como .zip» se queda fuera: necesita un endpoint nuevo en `contracts/` y no aporta tanto como lo anterior para la entrega.
+
+### 2026-11-22 · Persona A (agente autónomo) · Fase 7: segunda fuente y caché
+- **Prompt:** roadmap autónomo, fase 7.
+- **Qué funcionó:** Semantic Scholar como segunda herramienta del Investigador, con año, revista y citas, ordenada por citas. Cuando un paper también está en arXiv se usa su URL de arXiv, así que la verificación de fuentes (por id de arXiv) reconoce como uno solo el mismo paper encontrado por las dos herramientas. Caché de 24 h en memoria para las dos fuentes: la misma búsqueda no se repite (arXiv pide 3 s entre peticiones).
+- **Qué costó o falló:** la API sin clave tiene un límite compartido y responde 429 a menudo; en lugar de fallar, la herramienta devuelve un error legible («usa search_arxiv») y el modelo sigue con arXiv. No se pudo probar contra la API real desde el entorno del agente (sin red): los tests usan respuestas simuladas con el formato documentado.
+- **Qué cambiaría:** pedir una clave gratuita de Semantic Scholar para la URL pública. Las evals con búsquedas grabadas quedan pendientes: grabar respuestas reales exige red.

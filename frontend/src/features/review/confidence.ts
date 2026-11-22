@@ -1,4 +1,5 @@
 import type { ProposalReview } from '../../api/contract.gen'
+import { makeI18n, type I18n } from '../../i18n/context'
 
 export type ConfidenceLevel = 'high' | 'medium' | 'low' | 'unknown'
 
@@ -24,7 +25,10 @@ export const CONFIDENCE_ICON: Record<ConfidenceLevel, string> = {
   unknown: '?',
 }
 
-export function confidenceLabel(review: ProposalReview | null | undefined): string {
-  if (!review) return 'Sin revisar'
-  return `${review.supported}/${review.claims} respaldadas`
+export function confidenceLabel(
+  review: ProposalReview | null | undefined,
+  t: I18n['t'] = makeI18n('es').t,
+): string {
+  if (!review) return t('confidence.unreviewed')
+  return t('confidence.supported', { supported: review.supported, claims: review.claims })
 }

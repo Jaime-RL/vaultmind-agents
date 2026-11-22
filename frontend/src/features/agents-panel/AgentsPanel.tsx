@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react'
 import type { AgentEvent } from '../../api/contract.gen'
 import { TierDot } from '../../components/TierDot'
-import { AGENT_LABELS, TIER_LABELS } from '../graph/colors'
-import { describeToolCall, eventKey, formatUsd, plural, shortModel } from './describeEvent'
+import { useI18n } from '../../i18n/context'
+import type { MessageKey } from '../../i18n/messages'
+import { describeToolCall, eventKey, formatUsd, shortModel } from './describeEvent'
 import type { RunState } from './runReducer'
 
 interface Props {
@@ -20,6 +21,7 @@ const EXAMPLE_TOPICS = [
 
 export function AgentsPanel({ state, onReconnect, onExample }: Props) {
   const logRef = useRef<HTMLOListElement>(null)
+  const { t } = useI18n()
 
   // Desplaza al último evento, salvo que el usuario haya subido a leer algo anterior.
   useEffect(() => {
@@ -32,22 +34,18 @@ export function AgentsPanel({ state, onReconnect, onExample }: Props) {
   if (state.status === 'idle') {
     return (
       <div className="welcome">
-        <p className="panel-empty">
-          Escribe un tema arriba y pulsa <strong>Investigar</strong>: aquí verás en directo qué
-          piensa y qué hace cada agente.
-        </p>
+        <p className="panel-empty">{t('welcome.intro')}</p>
         <ol className="welcome__steps">
-          <li><strong>Explorador</strong> lee tu bóveda y decide qué investigar.</li>
-          <li><strong>Investigador</strong> busca papers en arXiv y los resume.</li>
-          <li><strong>Redactor</strong> escribe notas enlazadas con <code>[[tus notas]]</code>.</li>
-          <li><strong>Revisor</strong> comprueba cada afirmación y hace corregir lo que no se sostiene.</li>
+          {(['explorer', 'researcher', 'writer', 'reviewer'] as const).map((agent) => (
+            <li key={agent}>
+              <strong>{t(`agent.${agent}`)}</strong> {t(`welcome.${agent}`)}
+            </li>
+          ))}
         </ol>
-        <p className="welcome__hint">
-          SmartRoute manda cada paso al modelo pequeño si basta, y al grande solo si hace falta.
-        </p>
+        <p className="welcome__hint">{t('welcome.smartroute')}</p>
         {onExample && (
           <p className="welcome__examples">
-            Prueba con:{' '}
+            {t('welcome.try')}{' '}
             {EXAMPLE_TOPICS.map((topic) => (
               <button key={topic} type="button" className="chip" onClick={() => onExample(topic)}>
                 {topic}
@@ -63,18 +61,18 @@ export function AgentsPanel({ state, onReconnect, onExample }: Props) {
     <div className="agents-panel">
       {state.topic && (
         <p className="agents-panel__topic">
-          Investigación: <strong>{state.topic}</strong>
+          {t('agents.topic')} <strong>{state.topic}</strong>
         </p>
       )}
 
       {state.status === 'starting' && (
         <p className="panel-empty" role="status">
-          Lanzando la investigación…
+          {t('agents.starting')}
         </p>
       )}
 
       {/* role="log" + aria-live: los lectores de pantalla anuncian las líneas nuevas. */}
-      <ol ref={logRef} className="event-log" role="log" aria-live="polite" aria-label="Razonamiento de los agentes">
+      <ol ref={logRef} className="event-log" role="log" aria-live="polite" aria-label={t('agents.log')}>
         {state.events.map((event, index) => (
           <EventLine key={eventKey(event, index)} event={event} />
         ))}
@@ -82,16 +80,16 @@ export function AgentsPanel({ state, onReconnect, onExample }: Props) {
 
       {state.status === 'running' && (
         <p className="agents-panel__running" role="status">
-          <span className="spinner" aria-hidden="true" /> Los agentes están trabajando…
+          <span className="spinner" aria-hidden="true" /> {t('agents.running')}
         </p>
       )}
 
       {state.status === 'error' && (
         <div className="notice notice--error" role="alert">
-          <p>{state.error}</p>
+          <p>{state.disconnected ? t('research.error.disconnected') : state.error}</p>
           {state.disconnected && (
             <button type="button" className="button" onClick={onReconnect}>
-              Reconectar
+              {t('agents.reconnect')}
             </button>
           )}
         </div>
@@ -101,13 +99,15 @@ export function AgentsPanel({ state, onReconnect, onExample }: Props) {
 }
 
 function AgentChip({ event }: { event: AgentEvent }) {
+  const { t } = useI18n()
   return (
     // El agente se identifica por su nombre, no por un color (ver colors.ts).
-    <span className="agent-chip">{AGENT_LABELS[event.agent]}</span>
+    <span className="agent-chip">{t(`agent.${event.agent}`)}</span>
   )
 }
 
 function EventLine({ event }: { event: AgentEvent }) {
+  const { t, tn } = useI18n()
   switch (event.type) {
     case 'agent_thought':
       return (
@@ -120,7 +120,7 @@ function EventLine({ event }: { event: AgentEvent }) {
       return (
         <li className="event event--tool">
           <AgentChip event={event} />
-          <span>{describeToolCall(event.tool, event.args as Record<string, unknown>)}</span>
+          <span>{describeToolCall(event.tool, event.args as Record<string, unknown>, t)}</span>
         </li>
       )
     case 'tool_result':
@@ -136,12 +136,16 @@ function EventLine({ event }: { event: AgentEvent }) {
       return (
         <li className="event event--route">
           <span className={`tier-badge tier-badge--${event.tier}`}>
-            <TierDot tier={event.tier} /> {TIER_LABELS[event.tier]}
+            <TierDot tier={event.tier} /> {t(`tier.${event.tier}`)}
           </span>
           <span>
-            <code>{event.task}</code> con {shortModel(event.model)}
-            {event.escalated && <strong className="escalated"> · escalado</strong>}
-            <span className="event__reason"> — {event.reason}</span>
+            <code>{event.task}</code> {t('event.with')} {shortModel(event.model)}
+            {event.escalated && <strong className="escalated"> · {t('event.escalated')}</strong>}
+            {/* El motivo se describe aquí (en el idioma de la interfaz) a partir del nivel. */}
+            <span className="event__reason" title={event.reason}>
+              {' '}
+              — {t(routeReasonKey(event.tier, event.escalated))}
+            </span>
           </span>
         </li>
       )
@@ -150,19 +154,22 @@ function EventLine({ event }: { event: AgentEvent }) {
         <li className="event event--proposed">
           <AgentChip event={event} />
           <span>
-            ✨ Nota propuesta: <strong>{event.title}</strong>
+            ✨ {t('event.proposed')} <strong>{event.title}</strong>
           </span>
         </li>
       )
     case 'run_finished':
       return (
         <li className="event event--finished">
-          <strong>Investigación terminada</strong>
+          <strong>{t('event.finished')}</strong>
           <span>
-            {plural(event.stats.notes_proposed, 'nota propuesta', 'notas propuestas')} · coste{' '}
-            {formatUsd(event.stats.cost_usd)} · ahorro {formatUsd(event.stats.savings_usd)} frente a
-            usar solo el modelo grande · {plural(event.stats.escalations, 'escalada')} ·{' '}
-            {Math.round(event.stats.duration_s)} s
+            {t('event.summary', {
+              notes: tn('event.notes', event.stats.notes_proposed),
+              cost: formatUsd(event.stats.cost_usd),
+              savings: formatUsd(event.stats.savings_usd),
+              escalations: tn('event.escalations', event.stats.escalations),
+              seconds: Math.round(event.stats.duration_s),
+            })}
           </span>
         </li>
       )
@@ -174,4 +181,9 @@ function EventLine({ event }: { event: AgentEvent }) {
         </li>
       )
   }
+}
+
+function routeReasonKey(tier: 'slm' | 'large', escalated: boolean): MessageKey {
+  if (escalated) return 'event.reason.escalated'
+  return tier === 'slm' ? 'event.reason.slm' : 'event.reason.large'
 }

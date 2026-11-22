@@ -83,7 +83,11 @@ describe('App: investigación en directo (HU2)', () => {
     // POST con el tema del formulario y suscripción al SSE de ese run_id.
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/research',
-      expect.objectContaining({ method: 'POST', body: JSON.stringify({ topic: 'SLMs con tool calling' }) }),
+      expect.objectContaining({
+        method: 'POST',
+        // Sin proveedor de idioma, la interfaz va en español y las notas en «auto».
+        body: JSON.stringify({ topic: 'SLMs con tool calling', language: 'auto', ui_language: 'es' }),
+      }),
     )
     await vi.waitFor(() => expect(FakeEventSource.instances).toHaveLength(1))
     expect(FakeEventSource.last().url).toBe(`/api/research/${events[0]!.run_id}/events`)

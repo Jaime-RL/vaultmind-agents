@@ -1,16 +1,18 @@
 import { useCallback, useEffect, useReducer, useRef } from 'react'
 import { ApiError, startResearch } from '../../api/client'
+import type { ContentLanguage } from '../../api/contract.gen'
+import { useI18n, type I18n } from '../../i18n/context'
 import { subscribeToRun, type RunSubscription } from '../../api/events'
 import { initialRunState, runReducer } from './runReducer'
 
 /** Mensajes legibles para los errores HTTP que define el backend al lanzar una investigación. */
-function startErrorMessage(error: unknown): string {
+function startErrorMessage(error: unknown, t: I18n['t']): string {
   if (error instanceof ApiError) {
-    if (error.status === 429) return 'Ya hay demasiadas investigaciones en marcha. Prueba en un minuto.'
-    if (error.status === 503) return `El backend no puede investigar ahora: ${error.message}`
+    if (error.status === 429) return t('research.error.busy')
+    if (error.status === 503) return t('research.error.unavailable', { detail: error.message })
     return error.message
   }
-  return 'No se pudo conectar con el backend.'
+  return t('research.error.network')
 }
 
 /**
@@ -20,6 +22,7 @@ function startErrorMessage(error: unknown): string {
 export function useResearchRun() {
   const [state, dispatch] = useReducer(runReducer, initialRunState)
   const subscription = useRef<RunSubscription | null>(null)
+  const { lang, t } = useI18n()
 
   const listen = useCallback((runId: string) => {
     subscription.current?.close()
@@ -30,18 +33,19 @@ export function useResearchRun() {
   }, [])
 
   const start = useCallback(
-    async (topic: string) => {
+    async (topic: string, language: ContentLanguage = 'auto') => {
       subscription.current?.close()
       dispatch({ type: 'start', topic })
       try {
-        const { run_id } = await startResearch(topic)
+        // Los mensajes de los agentes llegan en el idioma de la interfaz.
+        const { run_id } = await startResearch(topic, language, lang)
         dispatch({ type: 'started', runId: run_id })
         listen(run_id)
       } catch (error) {
-        dispatch({ type: 'failed', message: startErrorMessage(error) })
+        dispatch({ type: 'failed', message: startErrorMessage(error, t) })
       }
     },
-    [listen],
+    [listen, lang, t],
   )
 
   /** Reconecta al mismo run tras perder la conexión (el servidor reenvía todo). */

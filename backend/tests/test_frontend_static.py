@@ -46,3 +46,21 @@ def test_index_is_revalidated_and_hashed_assets_are_cached_forever(tmp_path):
     assert client.get("/").headers["cache-control"] == "no-cache"
     assert client.get("/index.html").headers["cache-control"] == "no-cache"
     assert "immutable" in client.get("/assets/index-3f2a.js").headers["cache-control"]
+
+
+def test_module_level_app_imports_cleanly_with_a_frontend(tmp_path):
+    """Regresión: `app = create_app()` se ejecuta al importar el módulo (así arranca
+    uvicorn en Docker, con FRONTEND_DIST). Una clase definida después de esa línea pasaba
+    los tests, que crean la app más tarde, pero rompía el arranque real con un NameError."""
+    import os
+    import subprocess
+    import sys
+
+    dist = tmp_path / "dist"
+    dist.mkdir()
+    (dist / "index.html").write_text("<!doctype html>", encoding="utf-8")
+    env = {**os.environ, "FRONTEND_DIST": str(dist)}
+    result = subprocess.run(
+        [sys.executable, "-c", "import app.main"], capture_output=True, text=True, env=env
+    )
+    assert result.returncode == 0, result.stderr

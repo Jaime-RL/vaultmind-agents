@@ -17,6 +17,24 @@ from app.config import Settings, get_settings
 from app.services import Services, build_services
 
 
+class FrontendFiles(StaticFiles):
+    """Sirve el frontend compilado con la caché adecuada para cada fichero.
+
+    Vite pone un hash en el nombre de cada JS y CSS (`assets/index-3f2a.js`): se pueden
+    guardar en caché para siempre. `index.html`, en cambio, siempre se llama igual; si el
+    navegador lo guarda, tras un despliegue sigue cargando los assets viejos y el visitante
+    ve la versión anterior (pasó en la URL pública). Por eso se revalida en cada visita.
+    """
+
+    async def get_response(self, path: str, scope):
+        response = await super().get_response(path, scope)
+        if path.startswith("assets/"):
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        elif response.media_type == "text/html":
+            response.headers["Cache-Control"] = "no-cache"
+        return response
+
+
 def create_app(settings: Settings | None = None, services: Services | None = None) -> FastAPI:
     """Crea la aplicación.
 
@@ -66,21 +84,3 @@ def create_app(settings: Settings | None = None, services: Services | None = Non
 
 
 app = create_app()
-
-
-class FrontendFiles(StaticFiles):
-    """Sirve el frontend compilado con la caché adecuada para cada fichero.
-
-    Vite pone un hash en el nombre de cada JS y CSS (`assets/index-3f2a.js`): se pueden
-    guardar en caché para siempre. `index.html`, en cambio, siempre se llama igual; si el
-    navegador lo guarda, tras un despliegue sigue cargando los assets viejos y el visitante
-    ve la versión anterior (pasó en la URL pública). Por eso se revalida en cada visita.
-    """
-
-    async def get_response(self, path: str, scope):
-        response = await super().get_response(path, scope)
-        if path.startswith("assets/"):
-            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
-        elif response.media_type == "text/html":
-            response.headers["Cache-Control"] = "no-cache"
-        return response

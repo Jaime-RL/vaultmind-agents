@@ -32,3 +32,17 @@ def test_without_dist_only_the_api_is_served(tmp_path):
         client = client_with_dist(dist)
         assert client.get("/").status_code == 404
         assert client.get("/api/health").status_code == 200
+
+
+def test_index_is_revalidated_and_hashed_assets_are_cached_forever(tmp_path):
+    """Regresión: tras un despliegue, el navegador seguía con el index.html viejo en caché y
+    el visitante veía la versión anterior de la interfaz."""
+    dist = tmp_path / "dist"
+    (dist / "assets").mkdir(parents=True)
+    (dist / "index.html").write_text("<!doctype html><div id='root'></div>", encoding="utf-8")
+    (dist / "assets" / "index-3f2a.js").write_text("console.log('ok')", encoding="utf-8")
+    client = client_with_dist(dist)
+
+    assert client.get("/").headers["cache-control"] == "no-cache"
+    assert client.get("/index.html").headers["cache-control"] == "no-cache"
+    assert "immutable" in client.get("/assets/index-3f2a.js").headers["cache-control"]

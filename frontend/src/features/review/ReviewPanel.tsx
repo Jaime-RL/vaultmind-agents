@@ -11,11 +11,13 @@ interface Props {
   busyId: string | null
   actionError: string | null
   existing: Set<string>
-  onResolve: (id: string, action: 'approve' | 'reject') => void
+  onResolve: (id: string, action: 'approve' | 'reject', markdown?: string) => void
   onRetry: () => void
+  /** «Profundizar»: lanza una investigación nueva sobre esta nota. */
+  onDeepen?: (title: string) => void
 }
 
-export function ReviewPanel({ state, busyId, actionError, existing, onResolve, onRetry }: Props) {
+export function ReviewPanel({ state, busyId, actionError, existing, onResolve, onRetry, onDeepen }: Props) {
   // null = «la primera por defecto» (el usuario llega a revisar, no a hacer clic);
   // '' = todas cerradas a propósito; un id = esa nota abierta.
   const [openId, setOpenId] = useState<string | null>(null)
@@ -71,6 +73,7 @@ export function ReviewPanel({ state, busyId, actionError, existing, onResolve, o
               existing={existing}
               onToggle={() => setOpenId(proposal.id === activeId ? '' : proposal.id)}
               onResolve={onResolve}
+              onDeepen={onDeepen}
             />
           ))}
         </ul>
@@ -85,11 +88,15 @@ interface CardProps {
   busy: boolean
   existing: Set<string>
   onToggle: () => void
-  onResolve: (id: string, action: 'approve' | 'reject') => void
+  onResolve: (id: string, action: 'approve' | 'reject', markdown?: string) => void
+  onDeepen?: (title: string) => void
 }
 
-function ProposalCard({ proposal, open, busy, existing, onToggle, onResolve }: CardProps) {
+function ProposalCard({ proposal, open, busy, existing, onToggle, onResolve, onDeepen }: CardProps) {
   const bodyId = `proposal-${proposal.id}`
+  // null = sin editar; un texto = el usuario está editando la nota antes de aprobarla.
+  const [draft, setDraft] = useState<string | null>(null)
+  const edited = draft !== null && draft.trim() !== '' && draft !== proposal.markdown
   // El backend ya añade una sección de fuentes al final del Markdown; aquí solo
   // listamos las que no aparezcan en la nota, para no mostrarlas dos veces.
   const extraSources = proposal.sources.filter((source) => !proposal.markdown.includes(source.url))
@@ -113,7 +120,17 @@ function ProposalCard({ proposal, open, busy, existing, onToggle, onResolve }: C
       {open && (
         <div id={bodyId} className="proposal__body">
           <ReviewDetails proposal={proposal} />
-          <NoteMarkdown markdown={proposal.markdown} existing={existing} />
+          {draft === null ? (
+            <NoteMarkdown markdown={proposal.markdown} existing={existing} />
+          ) : (
+            <textarea
+              className="proposal__editor"
+              aria-label={`Editar «${proposal.title}»`}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              rows={14}
+            />
+          )}
 
           {extraSources.length > 0 && (
             <section className="proposal__sources" aria-label="Fuentes">
@@ -135,9 +152,17 @@ function ProposalCard({ proposal, open, busy, existing, onToggle, onResolve }: C
               type="button"
               className="button button--primary"
               disabled={busy}
-              onClick={() => onResolve(proposal.id, 'approve')}
+              onClick={() => onResolve(proposal.id, 'approve', edited ? draft : undefined)}
             >
-              {busy ? 'Guardando…' : 'Aprobar'}
+              {busy ? 'Guardando…' : edited ? 'Aprobar con cambios' : 'Aprobar'}
+            </button>
+            <button
+              type="button"
+              className="button"
+              disabled={busy}
+              onClick={() => setDraft(draft === null ? proposal.markdown : null)}
+            >
+              {draft === null ? 'Editar' : 'Descartar cambios'}
             </button>
             <button
               type="button"
@@ -147,6 +172,17 @@ function ProposalCard({ proposal, open, busy, existing, onToggle, onResolve }: C
             >
               Rechazar
             </button>
+            {onDeepen && (
+              <button
+                type="button"
+                className="button button--ghost"
+                disabled={busy}
+                title="Lanza una investigación nueva sobre esta nota"
+                onClick={() => onDeepen(proposal.title)}
+              >
+                Profundizar
+              </button>
+            )}
           </div>
         </div>
       )}

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import type { VaultGraph } from '../../api/contract.gen'
 import { PROPOSED_COLOR } from './colors'
-import { buildGraphData, type ProposedNode } from './graphData'
+import { loadDemoProposals } from '../../test/fixtures'
+import { buildGraphData, mergeProposed, type ProposedNode } from './graphData'
 
 const vault: VaultGraph = {
   nodes: [
@@ -87,5 +88,28 @@ describe('buildGraphData: notas aprobadas', () => {
     const data = buildGraphData(vault, [proposal({ status: 'approved' })])
 
     expect(data.nodes.some((n) => n.id === 'p-001')).toBe(true)
+  })
+})
+
+describe('mergeProposed', () => {
+  const saved = loadDemoProposals()
+
+  it('al recargar la página recupera las notas pendientes guardadas', () => {
+    const merged = mergeProposed([], saved)
+
+    expect(merged.map((p) => p.id)).toEqual(saved.map((p) => p.id))
+    expect(merged.every((p) => p.status === 'pending' && p.tier === undefined)).toBe(true)
+  })
+
+  it('no duplica las de la investigación en curso ni recupera las ya resueltas', () => {
+    const live: ProposedNode[] = [
+      { id: saved[0]!.id, title: 'x', links: [], agent: 'writer', tier: 'large', status: 'pending' },
+    ]
+    const resolved = { ...saved[1]!, status: 'approved' as const }
+
+    const merged = mergeProposed(live, [saved[0]!, resolved, saved[2]!])
+
+    expect(merged.map((p) => p.id)).toEqual([saved[0]!.id, saved[2]!.id])
+    expect(merged[0]!.tier).toBe('large') // se conserva el dato en directo
   })
 })

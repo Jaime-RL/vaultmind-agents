@@ -66,8 +66,16 @@ export const researchEventsUrl = (runId: string): string =>
 export const getProposals = (status?: Proposal['status']): Promise<ProposalList> =>
   apiFetch<ProposalList>(`/api/proposals${status ? `?status=${status}` : ''}`)
 
-export const resolveProposal = (id: string, action: ProposalAction['action']): Promise<Proposal> =>
-  post<Proposal>(`/api/proposals/${encodeURIComponent(id)}`, { action } satisfies ProposalAction)
+/** `markdown`: solo al aprobar, la versión editada por el usuario. */
+export const resolveProposal = (
+  id: string,
+  action: ProposalAction['action'],
+  markdown?: string,
+): Promise<Proposal> =>
+  post<Proposal>(`/api/proposals/${encodeURIComponent(id)}`, {
+    action,
+    ...(markdown !== undefined ? { markdown } : {}),
+  } satisfies ProposalAction)
 
 export const getMetrics = (runId?: string): Promise<Metrics> =>
   apiFetch<Metrics>(`/api/metrics${runId ? `?run_id=${encodeURIComponent(runId)}` : ''}`)

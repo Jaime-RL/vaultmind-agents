@@ -13,6 +13,7 @@ import { RouterPanel, type MetricsScope } from './features/router-panel/RouterPa
 import { useMetrics } from './features/router-panel/useMetrics'
 import { useProposals } from './features/review/useProposals'
 import './App.css'
+import { mergeProposed } from './features/graph/graphData'
 
 type BackendStatus = 'checking' | 'ok' | 'down'
 
@@ -81,6 +82,13 @@ export default function App() {
     `${run.state.routeDecisions.length}:${run.state.status}`,
   )
 
+  // Notas del grafo: las de la investigación en curso y, además, las pendientes que ya
+  // estaban guardadas (p. ej., tras recargar la página), para que no desaparezcan del grafo.
+  const graphProposed = useMemo(
+    () => mergeProposed(run.state.proposed, proposals.state.status === 'ready' ? proposals.state.proposals : []),
+    [run.state.proposed, proposals.state],
+  )
+
   // Métricas SOLO de la investigación en curso, para el marcador de SmartRoute sobre el grafo.
   const runMetrics = useMetrics(run.state.runId, `${run.state.routeDecisions.length}:${run.state.status}`)
 
@@ -110,7 +118,7 @@ export default function App() {
         <section className="workspace__graph" aria-label="Grafo de la bóveda">
           <GraphView
             state={vaultState}
-            proposed={run.state.proposed}
+            proposed={graphProposed}
             focusId={focusId}
             fitAll={run.state.status === 'finished' && !askFocus}
             onRetry={reloadVault}
@@ -128,7 +136,7 @@ export default function App() {
               {
                 id: 'agents',
                 label: 'Agentes',
-                content: <AgentsPanel state={run.state} onReconnect={run.reconnect} />,
+                content: <AgentsPanel state={run.state} onReconnect={run.reconnect} onExample={startResearch} />,
               },
               {
                 id: 'review',
@@ -142,6 +150,10 @@ export default function App() {
                     existing={existingNotes}
                     onResolve={proposals.resolve}
                     onRetry={() => void proposals.reload()}
+                    onDeepen={(title) => {
+                      setTab('agents')
+                      startResearch(title)
+                    }}
                   />
                 ),
               },

@@ -125,3 +125,9 @@ Materia prima para la sección «Cómo se construyó con IA» del README. Apunta
 - **Qué funcionó:** cada nota citada es un botón que lleva la cámara del grafo a ese nodo, reutilizando el mismo `focusId` que ya usaban las notas propuestas. La respuesta aparece con efecto de escritura (solo visual; respeta «reducir movimiento») y debajo se dice quién respondió (SLM o grande), cuánto costó y si hubo escalada. Comprobado con Playwright contra el servidor real.
 - **Qué costó o falló:** la regla `react-hooks/set-state-in-effect` rechazó la primera versión del efecto de escritura; se reinicia el progreso durante el render, como recomienda React. Además, un error mío anterior: ejecuté Prettier sin la configuración del proyecto y reformateó ficheros enteros. Se rehicieron los commits de frontend (ramas `-v2`) aplicando solo los cambios reales, para no ensuciar las PRs de Iván.
 - **Qué cambiaría:** añadir un `.prettierrc` al proyecto para que no vuelva a pasar (lo decide la Persona B).
+
+### 2026-11-22 · Persona A (agente autónomo) · Fase 6: acciones sobre las notas y bienvenida
+- **Prompt:** roadmap autónomo, fase 6 (backend y frontend, para revisión de Iván).
+- **Qué funcionó:** «Editar» abre la nota en un editor y el botón pasa a «Aprobar con cambios»; el backend guarda la versión del usuario y recalcula los enlaces del grafo a partir de sus `[[wikilinks]]`. «Profundizar» lanza una investigación sobre la nota. La pantalla de bienvenida explica los cuatro agentes y SmartRoute, con tres temas de ejemplo en un clic (útil para el vídeo). Al recargar la página, las notas pendientes guardadas vuelven a aparecer en el grafo.
+- **Qué costó o falló:** las capturas de Playwright mostraron que «Profundizar» se cortaba en la tarjeta: los tests no lo ven. Se arregló dejando que los botones pasen a otra línea.
+- **Qué cambiaría:** «Exportar como .zip» se queda fuera: necesita un endpoint nuevo en `contracts/` y no aporta tanto como lo anterior para la entrega.

@@ -1,4 +1,4 @@
-import type { Agent, Tier, VaultGraph } from '../../api/contract.gen'
+import type { Agent, Proposal, Tier, VaultGraph } from '../../api/contract.gen'
 import { folderColor, PROPOSED_COLOR } from './colors'
 
 /** Nota propuesta por los agentes que todavía no está en la bóveda. */
@@ -90,4 +90,24 @@ export function buildGraphData(vault: VaultGraph, proposed: ProposedNode[] = [])
   }
 
   return { nodes, links }
+}
+
+/**
+ * Nodos propuestos del grafo: los de la investigación en curso y las propuestas pendientes
+ * guardadas que aún no están (al recargar la página la investigación ya no está en memoria).
+ * De una propuesta guardada no se sabe con qué nivel de modelo se escribió: sin anillo.
+ */
+export function mergeProposed(live: ProposedNode[], pending: Proposal[]): ProposedNode[] {
+  const known = new Set(live.map((p) => p.id))
+  const restored = pending
+    .filter((p) => p.status === 'pending' && !known.has(p.id))
+    .map<ProposedNode>((p) => ({
+      id: p.id,
+      title: p.title,
+      links: p.links,
+      agent: p.agent,
+      tier: undefined,
+      status: 'pending',
+    }))
+  return restored.length ? [...live, ...restored] : live
 }

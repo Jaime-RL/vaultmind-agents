@@ -28,6 +28,7 @@ class Simulation:
     large_passed: int
     escalations: int
     slm_resolved: int  # casos que resolvió el SLM sin escalar
+    unchecked_passed: int  # resueltos si NINGÚN fallo del SLM se detectara (cota inferior)
 
     @property
     def savings(self) -> float:
@@ -39,7 +40,7 @@ def simulate(results: list[dict], policy: dict[str, str] = DEFAULT_POLICY) -> Si
     for r in results:
         by_case.setdefault(r["case_id"], {})[r["tier"]] = r
     smart_cost = large_cost = 0.0
-    smart_passed = large_passed = escalations = slm_resolved = cases = 0
+    smart_passed = large_passed = escalations = slm_resolved = cases = unchecked = 0
     for case in by_case.values():
         large = case.get("large")
         if large is None:
@@ -57,11 +58,20 @@ def simulate(results: list[dict], policy: dict[str, str] = DEFAULT_POLICY) -> Si
                 escalations += 1
                 smart_cost += large["cost_usd"]
                 smart_passed += large["passed"]
+            unchecked += slm["passed"]
         else:
             smart_cost += large["cost_usd"]
             smart_passed += large["passed"]
+            unchecked += large["passed"]
     return Simulation(
-        cases, smart_cost, large_cost, smart_passed, large_passed, escalations, slm_resolved
+        cases,
+        smart_cost,
+        large_cost,
+        smart_passed,
+        large_passed,
+        escalations,
+        slm_resolved,
+        unchecked,
     )
 
 
@@ -98,6 +108,11 @@ def readme_section(results: list[dict]) -> str:
         f"| Escaladas al modelo grande | — | {sim.escalations} |",
         "",
         f"**Ahorro: {sim.savings:.0%}** frente a usar siempre el modelo grande.",
+        "",
+        "Supone que SmartRoute detecta cada fallo del SLM y escala. En la práctica solo escala "
+        "si el validador lo detecta (JSON roto, herramienta inexistente, respuesta sin citas); "
+        f"si no detectara ninguno, se resolverían {sim.unchecked_passed}/{sim.cases} casos. Por "
+        "eso las tareas con fallos que ningún validador ve van directamente al modelo grande.",
         "",
         "| Tarea | Política | Acierto SLM | Acierto grande |",
         "| --- | --- | --- | --- |",

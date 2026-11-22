@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { getHealth } from './api/client'
 import { Tabs } from './components/Tabs'
 import { AgentsPanel } from './features/agents-panel/AgentsPanel'
+import { AskPanel } from './features/ask/AskPanel'
+import { LiveSavings } from './features/live-savings/LiveSavings'
 import { ResearchForm } from './features/agents-panel/ResearchForm'
 import { useResearchRun } from './features/agents-panel/useResearchRun'
 import { GraphView } from './features/graph/GraphView'
@@ -11,6 +13,7 @@ import { RouterPanel, type MetricsScope } from './features/router-panel/RouterPa
 import { useMetrics } from './features/router-panel/useMetrics'
 import { useProposals } from './features/review/useProposals'
 import './App.css'
+import { mergeProposed } from './features/graph/graphData'
 
 type BackendStatus = 'checking' | 'ok' | 'down'
 
@@ -42,8 +45,18 @@ export default function App() {
   const run = useResearchRun()
   const [tab, setTab] = useState('agents')
   const busy = run.state.status === 'starting' || run.state.status === 'running'
-  // La cámara del grafo se acerca a la última nota propuesta.
-  const focusId = run.state.proposed.at(-1)?.id
+  // Nota citada en «Preguntar» a la que vuela la cámara; se olvida al lanzar otra investigación.
+  const [askFocus, setAskFocus] = useState<string>()
+  // La cámara del grafo se acerca a la nota citada o, si no, a la última nota propuesta.
+  const focusId = askFocus ?? run.state.proposed.at(-1)?.id
+  const { start } = run
+  const startResearch = useCallback(
+    (topic: string) => {
+      setAskFocus(undefined)
+      start(topic)
+    },
+    [start],
+  )
 
   const { markResolved } = run
   const onResolved = useCallback(
@@ -69,6 +82,16 @@ export default function App() {
     `${run.state.routeDecisions.length}:${run.state.status}`,
   )
 
+  // Notas del grafo: las de la investigación en curso y, además, las pendientes que ya
+  // estaban guardadas (p. ej., tras recargar la página), para que no desaparezcan del grafo.
+  const graphProposed = useMemo(
+    () => mergeProposed(run.state.proposed, proposals.state.status === 'ready' ? proposals.state.proposals : []),
+    [run.state.proposed, proposals.state],
+  )
+
+  // Métricas SOLO de la investigación en curso, para el marcador de SmartRoute sobre el grafo.
+  const runMetrics = useMetrics(run.state.runId, `${run.state.routeDecisions.length}:${run.state.status}`)
+
   // Notas de la bóveda (por id y por título) para marcar los [[enlaces]] que ya existen.
   const existingNotes = useMemo(
     () =>
@@ -85,7 +108,7 @@ export default function App() {
           <h1>VaultMind</h1>
           <p className="topbar__tagline">Agentes que investigan y hacen crecer tu bóveda de Obsidian</p>
         </div>
-        <ResearchForm busy={busy} onSubmit={run.start} />
+        <ResearchForm busy={busy} onSubmit={startResearch} />
         <p className={`status status--${status}`} role="status" aria-label="Estado del backend">
           {STATUS_LABEL[status]}
         </p>
@@ -95,11 +118,14 @@ export default function App() {
         <section className="workspace__graph" aria-label="Grafo de la bóveda">
           <GraphView
             state={vaultState}
-            proposed={run.state.proposed}
+            proposed={graphProposed}
             focusId={focusId}
-            fitAll={run.state.status === 'finished'}
+            fitAll={run.state.status === 'finished' && !askFocus}
             onRetry={reloadVault}
           />
+          {run.state.runId && (
+            <LiveSavings decisions={run.state.routeDecisions} metrics={runMetrics} running={busy} />
+          )}
         </section>
         <aside className="workspace__side">
           <Tabs
@@ -110,7 +136,7 @@ export default function App() {
               {
                 id: 'agents',
                 label: 'Agentes',
-                content: <AgentsPanel state={run.state} onReconnect={run.reconnect} />,
+                content: <AgentsPanel state={run.state} onReconnect={run.reconnect} onExample={startResearch} />,
               },
               {
                 id: 'review',
@@ -124,8 +150,17 @@ export default function App() {
                     existing={existingNotes}
                     onResolve={proposals.resolve}
                     onRetry={() => void proposals.reload()}
+                    onDeepen={(title) => {
+                      setTab('agents')
+                      startResearch(title)
+                    }}
                   />
                 ),
+              },
+              {
+                id: 'ask',
+                label: 'Preguntar',
+                content: <AskPanel existing={existingNotes} onFocusNote={setAskFocus} />,
               },
               {
                 id: 'router',

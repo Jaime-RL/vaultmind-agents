@@ -7,7 +7,7 @@ la interfaz siempre sabe cuándo ha acabado la investigación.
 """
 
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 
 from agents.editorial import write_and_review
@@ -38,6 +38,7 @@ async def run_research(
     router: SmartRoute,
     emitter: Emitter,
     search_tool: Tool,
+    extra_tools: Sequence[Tool] = (),
     on_proposal: ProposalCallback | None = None,
     max_gaps: int = 3,
     clock: Callable[[], float] = time.monotonic,
@@ -49,7 +50,12 @@ async def run_research(
             topic=topic, vault=vault, router=router, emitter=emitter, max_gaps=max_gaps
         )
         result.findings = await research(
-            topic=topic, gaps=result.gaps, router=router, emitter=emitter, search_tool=search_tool
+            topic=topic,
+            gaps=result.gaps,
+            router=router,
+            emitter=emitter,
+            search_tool=search_tool,
+            extra_tools=extra_tools,
         )
         # Redactor y Revisor trabajan nota a nota: el Revisor actúa ANTES de publicar y, si
         # la nota no se sostiene, el Redactor la corrige una vez (ver agents/editorial.py).

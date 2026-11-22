@@ -8,9 +8,17 @@ import type { RunState } from './runReducer'
 interface Props {
   state: RunState
   onReconnect: () => void
+  /** Temas de ejemplo de la pantalla de bienvenida: lanzan una investigación en un clic. */
+  onExample?: (topic: string) => void
 }
 
-export function AgentsPanel({ state, onReconnect }: Props) {
+const EXAMPLE_TOPICS = [
+  'multi-token prediction',
+  'speculative decoding',
+  'retrieval-augmented generation',
+]
+
+export function AgentsPanel({ state, onReconnect, onExample }: Props) {
   const logRef = useRef<HTMLOListElement>(null)
 
   // Desplaza al último evento, salvo que el usuario haya subido a leer algo anterior.
@@ -23,10 +31,31 @@ export function AgentsPanel({ state, onReconnect }: Props) {
 
   if (state.status === 'idle') {
     return (
-      <p className="panel-empty">
-        Escribe un tema arriba y pulsa <strong>Investigar</strong>: aquí verás en directo qué
-        piensa y qué hace cada agente.
-      </p>
+      <div className="welcome">
+        <p className="panel-empty">
+          Escribe un tema arriba y pulsa <strong>Investigar</strong>: aquí verás en directo qué
+          piensa y qué hace cada agente.
+        </p>
+        <ol className="welcome__steps">
+          <li><strong>Explorador</strong> lee tu bóveda y decide qué investigar.</li>
+          <li><strong>Investigador</strong> busca papers en arXiv y los resume.</li>
+          <li><strong>Redactor</strong> escribe notas enlazadas con <code>[[tus notas]]</code>.</li>
+          <li><strong>Revisor</strong> comprueba cada afirmación y hace corregir lo que no se sostiene.</li>
+        </ol>
+        <p className="welcome__hint">
+          SmartRoute manda cada paso al modelo pequeño si basta, y al grande solo si hace falta.
+        </p>
+        {onExample && (
+          <p className="welcome__examples">
+            Prueba con:{' '}
+            {EXAMPLE_TOPICS.map((topic) => (
+              <button key={topic} type="button" className="chip" onClick={() => onExample(topic)}>
+                {topic}
+              </button>
+            ))}
+          </p>
+        )}
+      </div>
     )
   }
 

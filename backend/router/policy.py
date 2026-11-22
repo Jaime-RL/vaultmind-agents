@@ -14,6 +14,7 @@ DEFAULT_POLICY: dict[str, Tier] = {
     "find_gaps": "slm",  # Explorador: elegir lagunas de una lista ya calculada
     "summarize_paper": "slm",  # Investigador: resumir un abstract
     "verify_claims": "slm",  # Revisor: ¿cada afirmación tiene su fuente?
+    "answer_question": "slm",  # Pregunta a tu bóveda: responder con notas ya seleccionadas
     # Tareas de redacción o razonamiento largo: directamente al modelo grande.
     "plan_research": "large",
     "write_note": "large",

@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
+from api.ask import router as ask_router
 from api.health import router as health_router
 from api.metrics import router as metrics_router
 from api.proposals import router as proposals_router
@@ -56,6 +57,7 @@ def create_app(settings: Settings | None = None, services: Services | None = Non
     app.include_router(research_router, prefix="/api")
     app.include_router(proposals_router, prefix="/api")
     app.include_router(metrics_router, prefix="/api")
+    app.include_router(ask_router, prefix="/api")
 
     # Se monta lo último: las rutas /api/... ya registradas tienen prioridad sobre los estáticos.
     if settings.frontend_dist and settings.frontend_dist.is_dir():

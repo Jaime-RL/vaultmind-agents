@@ -83,3 +83,69 @@ Materia prima para la sección «Cómo se construyó con IA» del README. Apunta
 - **Qué funcionó:** probar en la URL pública con un tema real en lugar de fiarse de los tests verdes. Destapó un fallo que ningún test veía: arXiv trata `all:multitoken prediction` como palabras alternativas y devolvía papers de cáncer o de tráfico, así que el Investigador hacía bien en no citar nada. Contrastarlo con consultas directas a arXiv dio la solución: buscar primero la frase exacta y relajar la consulta solo si no hay resultados. También poner al Revisor antes de publicar y darle los abstracts como evidencia: una nota que dice «Qwen es de Baidu» ya no pasa porque el dato no está en ninguna fuente.
 - **Qué costó o falló:** los tests usaban siempre un arXiv falso que devolvía el paper correcto, así que la calidad de las búsquedas nunca se probaba. Y en la URL pública cualquiera podía aprobar notas en la bóveda compartida: se resolvió con una cookie anónima por visitante y notas aprobadas que viven solo en su grafo.
 - **Qué cambiaría:** incluir en las evals casos con la búsqueda real grabada (fixtures de respuestas de arXiv), no solo las respuestas del LLM.
+
+### 2026-11-22 · Persona A (agente autónomo) · Fase 1: contrato de la revisión
+- **Prompt:** roadmap autónomo (`docs/roadmap-autonomo.md`), fase 1.
+- **Qué funcionó:** juntar en una sola PR de `contracts/` los dos cambios de `Proposal` que necesitan las fases siguientes (la revisión y la edición antes de aprobar). Así Iván revisa el contrato una vez. Los dos campos son opcionales: los clientes y datos antiguos siguen siendo válidos.
+- **Qué costó o falló:** el test de deriva valida los ejemplos con `model_dump()`, que incluye los `None`; por eso los campos opcionales admiten `null` en el esquema (`anyOf` con `null`) en lugar de ser solo «no requeridos».
+- **Qué cambiaría:** nada por ahora.
+
+### 2026-11-22 · Persona A (agente autónomo) · Fase 2: revisión guardada en cada nota
+- **Prompt:** roadmap autónomo, fase 2.
+- **Qué funcionó:** adjuntar la revisión final a la `Proposal` justo antes de publicarla: la nota y su «5/5 respaldadas» viajan juntas a la base de datos y a la API, sin endpoints nuevos. La demo se regeneró con el mismo flujo que el código real (escribir → revisar → corregir → publicar), incluida una corrección en «Routing de modelos» para que el vídeo la enseñe.
+- **Qué costó o falló:** un test de la demo contaba 10 tareas exactas; con la corrección son 12. Era una cifra mágica: ahora el comentario explica de dónde sale.
+- **Qué cambiaría:** generar ese número desde el propio fixture en lugar de escribirlo a mano.
+
+### 2026-11-22 · Persona A (agente autónomo) · Fase 3: confianza visible en cada nota
+- **Prompt:** roadmap autónomo, fase 3 (frontend, para revisión de Iván).
+- **Qué funcionó:** una insignia en la cabecera de cada tarjeta («✓ 5/5 respaldadas · corregida») que se ve sin abrir la nota. El color nunca va solo: lleva también icono y texto, para que se entienda con daltonismo. Reutiliza los colores de estado que ya tenía la interfaz (verde, ámbar, rojo). Comprobado con capturas de Playwright contra el servidor real en modo demo, no solo con tests.
+- **Qué costó o falló:** react-markdown muestra los avisos de Obsidian (`> [!warning]`) como una cita con el texto «[!warning]» literal. Se resolvió con un componente `blockquote` propio que detecta el marcador, sin añadir dependencias ni HTML sin sanear.
+- **Qué cambiaría:** el aviso se muestra como texto plano (pierde negritas o enlaces dentro del aviso); para avisos largos haría falta un plugin de remark.
+
+### 2026-11-22 · Persona A (agente autónomo) · Fase 4: SmartRoute en directo
+- **Prompt:** roadmap autónomo, fase 4 (frontend, para revisión de Iván).
+- **Qué funcionó:** un marcador flotante sobre el grafo con las llamadas resueltas por cada modelo, las escaladas y el ahorro frente a usar solo el grande. Sin cambiar contratos: el reparto sale de los `route_decision` en directo y el coste, de `/api/metrics?run_id=`, que ya se recargaba con cada decisión. La escalada tiene una animación corta que respeta `prefers-reduced-motion`.
+- **Qué costó o falló:** el evento `route_decision` no trae el coste, así que el ahorro va un paso por detrás de la decisión (llega con la métrica). Para el vídeo no se nota; si hiciera falta exactitud al instante, habría que añadir el coste al evento (cambio de contrato).
+- **Qué cambiaría:** nada para la entrega.
+
+### 2026-11-22 · Persona A (agente autónomo) · Fase 5a: contrato de «Pregunta a tu bóveda»
+- **Prompt:** roadmap autónomo, fase 5.
+- **Qué funcionó:** el roadmap proponía una respuesta en streaming (SSE), pero SmartRoute decide si escalar validando la respuesta COMPLETA del SLM (que cite notas reales). Mostrar en directo una respuesta que luego se descarta sería confuso, así que el contrato es una petición/respuesta JSON y el efecto de escritura se hace en el frontend. La respuesta incluye qué modelo respondió, si escaló y el coste: la pregunta también enseña SmartRoute.
+- **Qué costó o falló:** nada.
+- **Qué cambiaría:** si las respuestas fueran largas, streaming del modelo grande solo después de escalar.
+
+### 2026-11-22 · Persona A (agente autónomo) · Fase 5b: «Pregunta a tu bóveda» (backend)
+- **Prompt:** roadmap autónomo, fase 5.
+- **Qué funcionó:** reparto claro entre código y modelo. BM25 (sin dependencias) elige las 5 notas más relevantes; el SLM redacta. El validador de SmartRoute exige que la respuesta cite al menos una de esas notas: si el SLM contesta de memoria, se escala al modelo grande. Las citas se calculan resolviendo los `[[enlaces]]` contra las notas que se le dieron, así que no puede citar una nota que no ha leído. Sin LLM o con el cupo agotado no da error: señala las notas relevantes sin redactar (coste 0).
+- **Qué costó o falló:** un test esperaba que se citara una nota que BM25 no había elegido para esa pregunta: el comportamiento era el correcto y el test, no. Y ruff convertía la lista de palabras vacías en 80 líneas; se dejó con `# fmt: off`.
+- **Qué cambiaría:** BM25 no entiende sinónimos («ajuste fino» frente a «fine-tuning»); el siguiente paso serían embeddings.
+
+### 2026-11-22 · Persona A (agente autónomo) · Fase 5c: pestaña «Preguntar» (frontend)
+- **Prompt:** roadmap autónomo, fase 5 (frontend, para revisión de Iván).
+- **Qué funcionó:** cada nota citada es un botón que lleva la cámara del grafo a ese nodo, reutilizando el mismo `focusId` que ya usaban las notas propuestas. La respuesta aparece con efecto de escritura (solo visual; respeta «reducir movimiento») y debajo se dice quién respondió (SLM o grande), cuánto costó y si hubo escalada. Comprobado con Playwright contra el servidor real.
+- **Qué costó o falló:** la regla `react-hooks/set-state-in-effect` rechazó la primera versión del efecto de escritura; se reinicia el progreso durante el render, como recomienda React. Además, un error mío anterior: ejecuté Prettier sin la configuración del proyecto y reformateó ficheros enteros. Se rehicieron los commits de frontend (ramas `-v2`) aplicando solo los cambios reales, para no ensuciar las PRs de Iván.
+- **Qué cambiaría:** añadir un `.prettierrc` al proyecto para que no vuelva a pasar (lo decide la Persona B).
+
+### 2026-11-22 · Persona A (agente autónomo) · Fase 6: acciones sobre las notas y bienvenida
+- **Prompt:** roadmap autónomo, fase 6 (backend y frontend, para revisión de Iván).
+- **Qué funcionó:** «Editar» abre la nota en un editor y el botón pasa a «Aprobar con cambios»; el backend guarda la versión del usuario y recalcula los enlaces del grafo a partir de sus `[[wikilinks]]`. «Profundizar» lanza una investigación sobre la nota. La pantalla de bienvenida explica los cuatro agentes y SmartRoute, con tres temas de ejemplo en un clic (útil para el vídeo). Al recargar la página, las notas pendientes guardadas vuelven a aparecer en el grafo.
+- **Qué costó o falló:** las capturas de Playwright mostraron que «Profundizar» se cortaba en la tarjeta: los tests no lo ven. Se arregló dejando que los botones pasen a otra línea.
+- **Qué cambiaría:** «Exportar como .zip» se queda fuera: necesita un endpoint nuevo en `contracts/` y no aporta tanto como lo anterior para la entrega.
+
+### 2026-11-22 · Persona A (agente autónomo) · Fase 7: segunda fuente y caché
+- **Prompt:** roadmap autónomo, fase 7.
+- **Qué funcionó:** Semantic Scholar como segunda herramienta del Investigador, con año, revista y citas, ordenada por citas. Cuando un paper también está en arXiv se usa su URL de arXiv, así que la verificación de fuentes (por id de arXiv) reconoce como uno solo el mismo paper encontrado por las dos herramientas. Caché de 24 h en memoria para las dos fuentes: la misma búsqueda no se repite (arXiv pide 3 s entre peticiones).
+- **Qué costó o falló:** la API sin clave tiene un límite compartido y responde 429 a menudo; en lugar de fallar, la herramienta devuelve un error legible («usa search_arxiv») y el modelo sigue con arXiv. No se pudo probar contra la API real desde el entorno del agente (sin red): los tests usan respuestas simuladas con el formato documentado.
+- **Qué cambiaría:** pedir una clave gratuita de Semantic Scholar para la URL pública. Las evals con búsquedas grabadas quedan pendientes: grabar respuestas reales exige red.
+
+### 2026-11-22 · Persona A (agente autónomo) · Fase 8: tabla de SmartRoute para el README
+- **Prompt:** roadmap autónomo, fase 8.
+- **Qué funcionó:** `evals/report.py` simula SmartRoute con los resultados reales de cada caso: si la política manda la tarea al SLM y este falla, se cobra también el modelo grande (la escalada). Lo compara con usar siempre el grande y genera una sección lista para pegar en el README (ahorro, casos resueltos, escaladas y acierto por tarea). No llama a ningún modelo: solo lee el JSON que deja `evals.run`.
+- **Qué costó o falló:** ejecutar las evals necesita la clave de Groq, que el agente no puede leer (`.env`); lo lanza la persona.
+- **Qué cambiaría:** añadir casos de `answer_question` (Pregunta a tu bóveda) a las evals.
+
+### 2026-11-22 · Persona A (agente autónomo) · Cierre: README, GIF y guion del vídeo
+- **Prompt:** «Reanuda donde lo dejaste y termina el proyecto».
+- **Qué funcionó:** grabar la demo con Playwright (vídeo del navegador sin interfaz contra el servidor real en modo demo) y convertirla a GIF con ffmpeg y una paleta reducida: el GIF del README enseña la interfaz actual (bienvenida, marcador de SmartRoute, insignia de confianza y «Preguntar») sin pasar de 7 MB. El README recoge las siete historias y los aprendizajes de las pruebas reales, y `docs/guion-video.md` reparte los 5 minutos del vídeo.
+- **Qué costó o falló:** el grafo 3D gira y cambia casi todos los píxeles de cada fotograma, así que el GIF pesaba 17 MB; bajar a 6 fotogramas por segundo, 64 colores y acelerar ×1,4 lo dejó en 7 MB.
+- **Qué cambiaría:** un MP4 corto en lugar de GIF pesa diez veces menos, pero GitHub no lo reproduce dentro del README.

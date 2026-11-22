@@ -36,4 +36,25 @@ describe('NoteMarkdown', () => {
     expect(container.querySelector('img, script')).toBeNull()
     expect(screen.getByText('clic').getAttribute('href') ?? '').not.toContain('javascript')
   })
+
+  it('muestra los avisos de Obsidian como un aviso, no como texto «[!warning]»', () => {
+    render(
+      <NoteMarkdown
+        markdown={'Texto.\n\n> [!warning] Nota sin fuentes verificadas.'}
+        existing={new Set()}
+      />,
+    )
+
+    const callout = screen.getByRole('note')
+    expect(callout).toHaveClass('callout--warning')
+    expect(callout).toHaveTextContent('Atención: Nota sin fuentes verificadas.')
+    expect(callout).not.toHaveTextContent('[!warning]')
+  })
+
+  it('deja las citas normales como citas', () => {
+    const { container } = render(<NoteMarkdown markdown="> Una cita." existing={new Set()} />)
+
+    expect(container.querySelector('blockquote')).toHaveTextContent('Una cita.')
+    expect(screen.queryByRole('note')).not.toBeInTheDocument()
+  })
 })

@@ -7,6 +7,7 @@ en una no tira la investigación entera.
 
 import json
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 
 from agents.events import Emitter
@@ -36,12 +37,18 @@ class Finding:
 
 
 async def research(
-    *, topic: str, gaps: list[Gap], router: SmartRoute, emitter: Emitter, search_tool: Tool
+    *,
+    topic: str,
+    gaps: list[Gap],
+    router: SmartRoute,
+    emitter: Emitter,
+    search_tool: Tool,
+    extra_tools: Sequence[Tool] = (),
 ) -> list[Finding]:
     findings = []
     for gap in gaps:
         try:
-            finding = await research_gap(topic, gap, router, emitter, search_tool)
+            finding = await research_gap(topic, gap, router, emitter, search_tool, extra_tools)
         except LLMError as exc:
             await emitter.thought("researcher", f"No pude investigar «{gap.name}»: {exc}")
             continue
@@ -58,15 +65,26 @@ async def research(
 
 
 async def research_gap(
-    topic: str, gap: Gap, router: SmartRoute, emitter: Emitter, search_tool: Tool
+    topic: str,
+    gap: Gap,
+    router: SmartRoute,
+    emitter: Emitter,
+    search_tool: Tool,
+    extra_tools: Sequence[Tool] = (),
 ) -> Finding:
     # Envolvemos la herramienta para anotar qué papers devolvió de verdad arXiv:
     # así descartamos fuentes que el modelo se haya inventado.
     seen: dict[str, Source] = {}  # clave normalizada → fuente tal como la devolvió arXiv
     queries: set[str] = set()
 
-    async def tracked(args: dict) -> ToolOutput:
-        query = " ".join(str(args.get("query", "")).lower().split())
+    def tracked(search: Tool) -> Tool:
+        async def handler(args: dict) -> ToolOutput:
+            return await tracked_call(search, args)
+
+        return Tool(search.name, search.description, search.parameters, handler)
+
+    async def tracked_call(search: Tool, args: dict) -> ToolOutput:
+        query = search.name + ":" + " ".join(str(args.get("query", "")).lower().split())
         if query and query in queries:
             # El modelo repite una búsqueda: se lo decimos en lugar de gastar otra petición.
             return ToolOutput(
@@ -76,7 +94,7 @@ async def research_gap(
                 },
             )
         queries.add(query)
-        output = await search_tool.handler(args)
+        output = await search.handler(args)
         for item in output.data:
             if isinstance(item, dict) and item.get("url"):
                 seen[source_key(item["url"])] = Source(
@@ -84,7 +102,7 @@ async def research_gap(
                 )
         return output
 
-    tool = Tool(search_tool.name, search_tool.description, search_tool.parameters, tracked)
+    tools = [tracked(t) for t in (search_tool, *extra_tools)]
 
     await emitter.thought("researcher", f"Investigo «{gap.name}» para el tema «{topic}».")
     response = await run_agent(
@@ -97,7 +115,7 @@ async def research_gap(
                 "content": f"Tema de la investigación: {topic}\nConcepto a investigar: {gap.name}",
             },
         ],
-        tools=[tool],
+        tools=tools,
         router=router,
         emitter=emitter,
         final_validator=require_json_object("summary", "sources"),

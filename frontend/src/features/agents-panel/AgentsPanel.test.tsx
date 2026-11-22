@@ -21,6 +21,16 @@ describe('AgentsPanel', () => {
     expect(screen.getByText(/Escribe un tema arriba/)).toBeInTheDocument()
   })
 
+  it('la bienvenida explica los agentes y lanza un tema de ejemplo en un clic', async () => {
+    const onExample = vi.fn()
+    render(<AgentsPanel state={initialRunState} onReconnect={vi.fn()} onExample={onExample} />)
+
+    expect(screen.getByText('Revisor')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'multi-token prediction' }))
+
+    expect(onExample).toHaveBeenCalledWith('multi-token prediction')
+  })
+
   it('pinta una línea por evento del fixture (flujo SSE en la UI)', () => {
     render(<AgentsPanel state={replayed()} onReconnect={vi.fn()} />)
 

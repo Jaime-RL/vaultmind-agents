@@ -37,7 +37,7 @@ async def test_explorer_puts_the_topic_first_and_adds_related_gaps(
     assert [g.name for g in gaps] == ["Modelos pequeños", "LoRA", "Routing"]
     assert gaps[0].mentioned_in == []  # nota nueva: nadie la enlaza todavía
     assert gaps[2].mentioned_in == ["Agentes", "SLM"]
-    assert fake.calls[0].model == "small"  # find_gaps va primero al SLM
+    assert fake.calls[0].model == "large"  # find_gaps va al grande desde las evals con Groq
     prompt = fake.calls[0].messages[-1]["content"]
     assert "Tema: SLMs" in prompt
     assert prompt.index("Routing") < prompt.index("LoRA")  # ordenadas por menciones

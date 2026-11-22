@@ -108,7 +108,8 @@ GOOD_NOTE = (
         (GOOD_NOTE.replace("# LoRA\n\n", ""), False),  # sin encabezado
         ("# LoRA\n\nCorta. [[SLM]] [[RAG]]", False),
         (GOOD_NOTE.replace("[[Fine-tuning]]", "[[Nota inventada]]"), False),
-        (GOOD_NOTE.replace(" y [[Fine-tuning]]", ""), False),  # solo un enlace
+        # Un solo enlace es válido: el prompt pide no forzar enlaces sin relación.
+        (GOOD_NOTE.replace(" y [[Fine-tuning]]", ""), True),
     ],
 )
 def test_writer_check(content, passed):
@@ -160,13 +161,15 @@ def test_recommend_threshold():
 
 
 async def test_report_suggests_policy_changes():
-    # El SLM falla siempre en find_gaps: el informe debe sugerir pasarla al grande.
-    fake = FakeLLMClient(
-        [text("mal"), as_json({"topic_note": "Ajuste fino", "selected": ["LoRA"]})]
+    # find_gaps está en el grande; si el SLM acertara siempre, el informe sugeriría volver
+    # a pasarla al SLM. Y los fallos se listan con su caso y modelo.
+    good = as_json({"topic_note": "Ajuste fino", "selected": ["LoRA"]})
+    fake = FakeLLMClient([good, good, text("mal"), good])
+    results = await run_evals(
+        fake, MODELS, PRICES, cases=[case("explorer-una"), case("explorer-tfg")]
     )
-    results = await run_evals(fake, MODELS, PRICES, cases=[case("explorer-una")])
 
     markdown = report(results, MODELS)
 
-    assert "| find_gaps | slm | large | ← revisar |" in markdown
-    assert "`explorer-una` (slm)" in markdown
+    assert "| find_gaps | large | " in markdown
+    assert "`explorer-tfg` (slm)" in markdown

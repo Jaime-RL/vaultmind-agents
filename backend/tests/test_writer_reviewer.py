@@ -193,3 +193,14 @@ async def test_writer_saves_each_proposal_before_emitting_node_proposed(
 )
 def test_unique_issues(raw, expected):
     assert unique_issues(raw) == expected
+
+
+def test_typographic_hyphens_inside_wikilinks_are_normalized():
+    """Regresión (evals con Groq): [[Fine‑tuning]] con U+2011 no enlazaba con «Fine-tuning»."""
+    from agents.writer import normalize_wikilinks
+
+    text = "El ajuste [[Fine‑tuning]] y [[RAG|re–ranking]]; fuera del enlace, «auto‑regresivo»."
+
+    assert normalize_wikilinks(text) == (
+        "El ajuste [[Fine-tuning]] y [[RAG|re-ranking]]; fuera del enlace, «auto‑regresivo»."
+    )

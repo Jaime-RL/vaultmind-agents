@@ -133,7 +133,7 @@ def test_full_research_flow_with_production_wiring(setup):
 
         # 2. Cada agente usó el modelo que marca la política.
         assert provider.calls == [
-            ("Explorador", "tiny-model"),
+            ("Explorador", "big-model"),  # find_gaps → grande (evals con Groq)
             ("Investigador", "tiny-model"),
             ("Investigador", "tiny-model"),
             ("Redactor", "big-model"),
@@ -157,7 +157,7 @@ def test_full_research_flow_with_production_wiring(setup):
         # 4. Las métricas cuadran con el evento final y muestran ahorro.
         totals = client.get(f"/api/metrics?run_id={run_id}").json()["totals"]
         assert totals["tasks"] == 5
-        assert totals["slm_share"] == 0.8
+        assert totals["slm_share"] == 0.6  # 3 de 5 llamadas: Investigador ×2 y Revisor
         assert totals["savings_usd"] == pytest.approx(events[-1]["stats"]["savings_usd"])
         assert totals["savings_usd"] > 0
 

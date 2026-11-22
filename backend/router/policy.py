@@ -11,7 +11,11 @@ from app.contracts import Tier
 
 DEFAULT_POLICY: dict[str, Tier] = {
     # Tareas acotadas y verificables: el SLM suele bastar, y si falla se escala.
-    "find_gaps": "slm",  # Explorador: elegir lagunas de una lista ya calculada
+    # Explorador: decidir qué lagunas están RELACIONADAS con el tema. Empezó en el SLM, pero
+    # las evals con Groq (22-11-2026) dieron un 60 % de acierto frente al 100 % del grande:
+    # el SLM añadía lagunas sin relación, un fallo que ningún validador detecta (el JSON es
+    # correcto), así que SmartRoute nunca escalaría. Una llamada al grande cuesta ~0,0001 $.
+    "find_gaps": "large",
     "summarize_paper": "slm",  # Investigador: resumir un abstract
     "verify_claims": "slm",  # Revisor: ¿cada afirmación tiene su fuente?
     "answer_question": "slm",  # Pregunta a tu bóveda: responder con notas ya seleccionadas

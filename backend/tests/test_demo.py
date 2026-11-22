@@ -168,7 +168,9 @@ def test_demo_mode_works_end_to_end_without_api_key(vault_copy, tmp_path):
         assert approved.json()["status"] == "approved"
         graph = client.get("/api/vault").json()
         assert {"source": "modelos/SLM", "target": "_copilot/LoRA"} in graph["links"]
-        assert client.get(f"/api/metrics?run_id={run_id}").json()["totals"]["tasks"] == 10
+        assert (
+            client.get(f"/api/metrics?run_id={run_id}").json()["totals"]["tasks"] == 12
+        )  # 10 tareas + la corrección de «Routing de modelos» y su segunda revisión
 
 
 def test_without_key_falls_back_to_demo(tmp_path):

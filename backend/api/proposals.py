@@ -2,12 +2,17 @@ from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
+from agents.writer import resolve_links
 from api.deps import get_services
 from api.session import owner_of
 from app.config import Settings, get_settings
 from app.contracts import Proposal, ProposalAction
 from app.services import Services
+from vault import parse_vault
+from vault.parser import LinkResolver
 from vault.writer import UnsafeWriteError, write_copilot_note
+
+MAX_NOTE_CHARS = 20_000  # una nota de Obsidian normal tiene pocos miles de caracteres
 
 router = APIRouter(tags=["proposals"])
 
@@ -51,6 +56,19 @@ async def resolve_proposal(
 
     if action.action == "reject":
         return services.store.set_proposal_status(proposal_id, "rejected")
+    if action.markdown is not None:
+        # El usuario editó la nota antes de aprobarla: se guarda su versión y se recalculan
+        # los enlaces del grafo, que dependen de los [[wikilinks]] del texto.
+        if len(action.markdown) > MAX_NOTE_CHARS:
+            raise HTTPException(status_code=422, detail="La nota editada es demasiado larga")
+        vault = parse_vault(settings.vault_path, services.runs.approved_notes(owner))
+        proposal = proposal.model_copy(
+            update={
+                "markdown": action.markdown,
+                "links": resolve_links(action.markdown, LinkResolver(list(vault.notes))),
+            }
+        )
+        services.store.save_proposal(proposal)
     if settings.public_mode:
         # No se escribe en la bóveda compartida: la nota aprobada queda en la base de datos
         # y /api/vault la añade al grafo solo para este visitante.

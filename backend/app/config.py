@@ -54,11 +54,19 @@ class Settings(BaseSettings):
     # la grabación, se sirve el modo demo en su lugar. 0 = sin límite.
     max_runs_per_day: int = 10
     max_runs_per_ip_per_day: int = 3
+    # Cupo de preguntas a la bóveda por día (UTC), en total y por IP. Son mucho más baratas
+    # que una investigación (una sola llamada), por eso el cupo es mayor. 0 = sin límite.
+    max_asks_per_day: int = 200
+    max_asks_per_ip_per_day: int = 20
     # Usar la demo como respaldo (sin clave configurada o cupo agotado) en lugar de dar error.
     demo_fallback: bool = True
     # URL pública: cada visitante (cookie anónima) ve y resuelve solo SUS propuestas, y lo que
     # aprueba se guarda en la base de datos para él, sin escribir en la bóveda compartida.
     public_mode: bool = False
+    # Segunda fuente del Investigador (año, revista y citas). Solo se activa con clave: sin
+    # ella, la API pública responde 429 casi siempre y el Investigador gastaría pasos en vano.
+    semantic_scholar_enabled: bool = True
+    semantic_scholar_api_key: str | None = None
 
     # Carpeta con el frontend compilado (dist/ de Vite). Si existe, FastAPI la sirve en "/"
     # junto a la API: en producción todo es un solo servicio, sin CORS. La define el Dockerfile.

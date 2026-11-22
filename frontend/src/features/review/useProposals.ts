@@ -52,11 +52,11 @@ export function useProposals({ refreshKey, onResolved }: Options) {
   const load = useCallback(async () => setState(await fetchPending()), [fetchPending])
 
   const resolve = useCallback(
-    async (id: string, action: 'approve' | 'reject') => {
+    async (id: string, action: 'approve' | 'reject', markdown?: string) => {
       setBusyId(id)
       setActionError(null)
       try {
-        const updated = await resolveProposal(id, action)
+        const updated = await resolveProposal(id, action, markdown)
         setState((current) =>
           current.status === 'ready'
             ? { status: 'ready', proposals: current.proposals.filter((p) => p.id !== id) }

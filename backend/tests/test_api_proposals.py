@@ -111,3 +111,22 @@ def test_cannot_resolve_twice(client):
 def test_unknown_proposal_and_invalid_action(client):
     assert client.post("/api/proposals/p-nope", json={"action": "approve"}).status_code == 404
     assert client.post("/api/proposals/p-1", json={"action": "borrar"}).status_code == 422
+
+
+def test_approve_with_edited_markdown_saves_the_users_version(client, vault_dir):
+    edited = "# LoRA\n\nMi versión: entrena matrices de bajo rango. Sin enlaces."
+
+    response = client.post("/api/proposals/p-1", json={"action": "approve", "markdown": edited})
+
+    body = response.json()
+    assert body["markdown"] == edited
+    assert body["links"] == []  # los enlaces se recalculan con el texto editado
+    assert (vault_dir / "_copilot" / "LoRA.md").read_text(encoding="utf-8").strip() == edited
+
+
+def test_edited_markdown_cannot_be_empty_or_huge(client):
+    empty = client.post("/api/proposals/p-1", json={"action": "approve", "markdown": ""})
+    huge = client.post("/api/proposals/p-1", json={"action": "approve", "markdown": "x" * 20_001})
+
+    assert (empty.status_code, huge.status_code) == (422, 422)
+    assert client.get("/api/proposals?status=pending").json()[1]["id"] == "p-1"

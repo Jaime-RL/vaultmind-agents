@@ -104,11 +104,13 @@ def unique_issues(raw, limit: int = 5) -> list[str]:
     return result[:limit]
 
 
-MIN_SUPPORT = 0.8  # por debajo, el Redactor reescribe la nota una vez
-
-
 def needs_revision(review: Review | None) -> bool:
-    """¿Merece la pena reescribir? Solo si el Revisor contó afirmaciones y falla el respaldo."""
+    """¿Reescribir? Si el Revisor encontró CUALQUIER afirmación sin respaldo.
+
+    Empezamos con un umbral del 80 %, pero en la prueba real una nota con «Qwen-3D» (una
+    variante que no existe) sacó 4 de 5 y pasaba. Una afirmación inventada ya es motivo para
+    corregir: cuesta una llamada más al modelo grande y solo se hace una vez.
+    """
     if review is None or review.claims == 0:
         return False
-    return review.supported / review.claims < MIN_SUPPORT
+    return review.supported < review.claims

@@ -19,7 +19,7 @@ from app.contracts import MetricsTotals, Proposal, TaskMetric
 from router import summarize
 
 RunStatus = Literal["running", "finished", "error"]
-RunMode = Literal["real", "demo"]
+RunMode = Literal["real", "demo", "ask"]  # ask = una pregunta a la bóveda
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS runs (

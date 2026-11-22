@@ -132,6 +132,13 @@ class Source(Contract):
     url: str
 
 
+class ProposalReview(Contract):
+    claims: int = Field(ge=0)
+    supported: int = Field(ge=0)
+    issues: list[str]
+    revised: bool
+
+
 class Proposal(Contract):
     id: str
     run_id: str
@@ -143,10 +150,33 @@ class Proposal(Contract):
     model: str
     status: Literal["pending", "approved", "rejected"]
     created_at: datetime
+    review: ProposalReview | None = None
 
 
 class ProposalAction(Contract):
     action: Literal["approve", "reject"]
+    markdown: str | None = Field(default=None, min_length=1)
+
+
+# --- ask.schema.json -----------------------------------------------------------
+
+
+class AskRequest(Contract):
+    question: str = Field(min_length=3, max_length=500)
+
+
+class AskCitation(Contract):
+    id: str
+    title: str
+
+
+class AskResponse(Contract):
+    answer: str
+    citations: list[AskCitation]
+    model: str | None
+    tier: Tier | None
+    escalated: bool
+    cost_usd: float = Field(ge=0)
 
 
 # --- metrics.schema.json -------------------------------------------------------

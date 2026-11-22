@@ -13,6 +13,7 @@ from dataclasses import dataclass
 
 import httpx
 
+from agents.cache import TTLCache
 from agents.tools import Tool, ToolError, ToolOutput
 
 API_URL = "https://export.arxiv.org/api/query"
@@ -42,17 +43,24 @@ class ArxivClient:
         self._max_results = max_results
         self._lock = asyncio.Lock()
         self._last_call = -float("inf")
+        # Misma búsqueda en las últimas 24 h = mismos resultados, sin volver a pedirlos.
+        self._cache: TTLCache[list[Paper]] = TTLCache()
 
     async def search(self, query: str) -> list[Paper]:
         """Busca probando consultas de más a menos estrictas hasta que una devuelve algo."""
         query = query.strip()
         if not query:
             raise ToolError("La búsqueda está vacía")
+        key = " ".join(query.lower().split())
+        cached = self._cache.get(key)
+        if cached is not None:
+            return cached
         papers: list[Paper] = []
         for search_query in query_tiers(query):
             papers = await self._fetch(search_query)
             if papers:
                 break
+        self._cache.set(key, papers)
         return papers
 
     async def _fetch(self, search_query: str) -> list[Paper]:

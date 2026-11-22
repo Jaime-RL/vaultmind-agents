@@ -2,6 +2,47 @@
 // No lo edites a mano: cambia el esquema (en una PR acordada) y ejecuta `npm run gen:types`.
 /* eslint-disable */
 
+export interface AskRequest {
+  question: string
+}
+/**
+ * This interface was referenced by `AskRoot`'s JSON-Schema
+ * via the `definition` "AskCitation".
+ */
+
+export interface AskCitation {
+  /**
+   * id del nodo en el grafo (ruta sin .md).
+   */
+  id: string
+  title: string
+}
+/**
+ * This interface was referenced by `AskRoot`'s JSON-Schema
+ * via the `definition` "AskResponse".
+ */
+
+export interface AskResponse {
+  /**
+   * Respuesta en Markdown con [[wikilinks]] a las notas citadas.
+   */
+  answer: string
+  /**
+   * Notas de la bóveda que respaldan la respuesta, en orden de aparición.
+   */
+  citations: AskCitation[]
+  /**
+   * Modelo que respondió; null si no se llamó a ninguno (sin notas relevantes o sin LLM configurado).
+   */
+  model: string | null
+  tier: ('slm' | 'large') | null
+  /**
+   * true si el SLM falló y respondió el modelo grande.
+   */
+  escalated: boolean
+  cost_usd: number
+}
+
 /**
  * GET /api/research/{run_id}/events (SSE). Cada mensaje SSE lleva en 'data' un objeto de este esquema; el campo 'type' dice cuál.
  */
@@ -179,6 +220,33 @@ export interface Proposal {
   model: string
   status: 'pending' | 'approved' | 'rejected'
   created_at: string
+  /**
+   * Resultado del Revisor. Ausente o null si la nota no se pudo revisar.
+   */
+  review?: ProposalReview | null
+}
+/**
+ * This interface was referenced by `ProposalRoot`'s JSON-Schema
+ * via the `definition` "ProposalReview".
+ */
+
+export interface ProposalReview {
+  /**
+   * Afirmaciones factuales de la nota.
+   */
+  claims: number
+  /**
+   * Cuántas respaldan el resumen y los abstracts.
+   */
+  supported: number
+  /**
+   * Afirmaciones sin respaldo que encontró el Revisor.
+   */
+  issues: string[]
+  /**
+   * true si el Redactor reescribió la nota tras la revisión.
+   */
+  revised: boolean
 }
 /**
  * This interface was referenced by `ProposalRoot`'s JSON-Schema
@@ -187,6 +255,10 @@ export interface Proposal {
 
 export interface ProposalAction {
   action: 'approve' | 'reject'
+  /**
+   * Solo con approve: versión editada por el usuario que sustituye a la propuesta.
+   */
+  markdown?: string | null
 }
 
 export interface ResearchRequest {

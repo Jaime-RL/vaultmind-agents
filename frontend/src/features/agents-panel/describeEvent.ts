@@ -10,6 +10,8 @@ export function describeToolCall(tool: string, args: Record<string, unknown>): s
   switch (tool) {
     case 'search_arxiv':
       return query ? `Buscando en arXiv: «${query}»` : 'Buscando en arXiv…'
+    case 'search_semantic_scholar':
+      return query ? `Buscando en Semantic Scholar: «${query}»` : 'Buscando en Semantic Scholar…'
     case 'find_gaps':
       return 'Buscando conceptos de la bóveda que aún no tienen nota…'
     case 'verify_claims':

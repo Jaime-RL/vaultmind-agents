@@ -54,7 +54,7 @@ describe('ReviewPanel', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Aprobar' }))
     await userEvent.click(screen.getByRole('button', { name: 'Rechazar' }))
 
-    expect(onResolve).toHaveBeenNthCalledWith(1, proposals[0]!.id, 'approve')
+    expect(onResolve).toHaveBeenNthCalledWith(1, proposals[0]!.id, 'approve', undefined)
     expect(onResolve).toHaveBeenNthCalledWith(2, proposals[0]!.id, 'reject')
   })
 
@@ -90,5 +90,36 @@ describe('ReviewPanel', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('boom')
     await userEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
     expect(onRetry).toHaveBeenCalledOnce()
+  })
+
+  it('permite editar la nota y aprobar la versión editada', async () => {
+    const { onResolve } = renderPanel()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Editar' }))
+    const editor = screen.getByRole('textbox', { name: /Editar/ })
+    await userEvent.clear(editor)
+    await userEvent.type(editor, '# Mi versión')
+    await userEvent.click(screen.getByRole('button', { name: 'Aprobar con cambios' }))
+
+    expect(onResolve).toHaveBeenCalledWith(proposals[0]!.id, 'approve', '# Mi versión')
+  })
+
+  it('descartar los cambios vuelve a la nota original', async () => {
+    renderPanel()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Editar' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Descartar cambios' }))
+
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Aprobar' })).toBeInTheDocument()
+  })
+
+  it('«Profundizar» lanza una investigación sobre la nota', async () => {
+    const onDeepen = vi.fn()
+    renderPanel({ onDeepen })
+
+    await userEvent.click(screen.getByRole('button', { name: 'Profundizar' }))
+
+    expect(onDeepen).toHaveBeenCalledWith(proposals[0]!.title)
   })
 })

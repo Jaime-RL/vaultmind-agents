@@ -129,8 +129,43 @@ async def test_failed_rewrite_keeps_the_first_draft(make_router, emitter, vault)
 
 @pytest.mark.parametrize(
     ("claims", "supported", "expected"),
-    [(5, 4, False), (5, 3, True), (0, 0, False), (2, 0, True)],
+    [(5, 5, False), (5, 4, True), (0, 0, False), (2, 0, True)],  # 4 de 5: regresión «Qwen-3D»
 )
 def test_needs_revision(claims, supported, expected):
     assert needs_revision(Review("p", claims, supported)) is expected
     assert needs_revision(None) is False
+
+
+async def test_published_note_carries_its_final_review(make_router, emitter, vault):
+    router, _ = make_router(
+        [
+            note(DRAFT),
+            final({"claims": 3, "supported": 1, "issues": ["Baidu", "2015"]}),
+            note(FIXED),
+            final({"claims": 2, "supported": 2, "issues": []}),
+        ]
+    )
+    saved = []
+
+    await run(router, emitter, vault, saved=saved)
+
+    review = saved[0].review
+    assert (review.claims, review.supported, review.issues, review.revised) == (2, 2, [], True)
+
+
+async def test_note_reviewed_once_is_not_marked_as_revised(make_router, emitter, vault):
+    router, _ = make_router([note(FIXED), final({"claims": 4, "supported": 4, "issues": []})])
+    saved = []
+
+    await run(router, emitter, vault, saved=saved)
+
+    assert saved[0].review.revised is False
+
+
+async def test_note_without_review_has_no_review_field(make_router, emitter, vault):
+    router, _ = make_router([note(FIXED), LLMError("caído"), LLMError("también")])
+    saved = []
+
+    await run(router, emitter, vault, saved=saved)
+
+    assert saved[0].review is None

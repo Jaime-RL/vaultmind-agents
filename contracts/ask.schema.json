@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ask.schema.json",
+  "title": "Ask",
+  "description": "POST /api/ask — pregunta a tu bóveda: responde con tus notas y las cita como [[nota]].",
+  "$defs": {
+    "AskRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["question"],
+      "properties": {
+        "question": { "type": "string", "minLength": 3, "maxLength": 500 }
+      }
+    },
+    "AskCitation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title"],
+      "properties": {
+        "id": { "type": "string", "description": "id del nodo en el grafo (ruta sin .md)." },
+        "title": { "type": "string" }
+      }
+    },
+    "AskResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["answer", "citations", "model", "tier", "escalated", "cost_usd"],
+      "properties": {
+        "answer": { "type": "string", "description": "Respuesta en Markdown con [[wikilinks]] a las notas citadas." },
+        "citations": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/AskCitation" },
+          "description": "Notas de la bóveda que respaldan la respuesta, en orden de aparición."
+        },
+        "model": {
+          "description": "Modelo que respondió; null si no se llamó a ninguno (sin notas relevantes o sin LLM configurado).",
+          "anyOf": [{ "type": "string" }, { "type": "null" }]
+        },
+        "tier": { "anyOf": [{ "type": "string", "enum": ["slm", "large"] }, { "type": "null" }] },
+        "escalated": { "type": "boolean", "description": "true si el SLM falló y respondió el modelo grande." },
+        "cost_usd": { "type": "number", "minimum": 0 }
+      }
+    }
+  }
+}

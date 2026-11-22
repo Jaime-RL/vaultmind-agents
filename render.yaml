@@ -53,6 +53,10 @@ services:
         value: "10"
       - key: MAX_RUNS_PER_IP_PER_DAY
         value: "3"
+      - key: MAX_ASKS_PER_DAY
+        value: "200"
+      - key: MAX_ASKS_PER_IP_PER_DAY
+        value: "20"
       # Cada visitante ve solo sus notas y aprobar no escribe en la bóveda compartida.
       - key: PUBLIC_MODE
         value: "true"

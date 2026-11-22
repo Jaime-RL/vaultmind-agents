@@ -1,8 +1,8 @@
 """Bucle editorial: Redactor → Revisor → (Redactor corrige → Revisor) → publicar.
 
 Antes, cada nota se publicaba aunque el Revisor encontrara que casi nada tenía respaldo.
-Ahora el Revisor actúa ANTES de publicar y, si menos del 80 % de las afirmaciones están
-respaldadas por la evidencia (resumen + abstracts), el Redactor reescribe la nota una vez
+Ahora el Revisor actúa ANTES de publicar y, si encuentra alguna afirmación que no está
+respaldada por la evidencia (resumen + abstracts), el Redactor reescribe la nota una vez
 quitando lo dudoso. Una sola vuelta: acota el coste y evita bucles infinitos.
 
 Si el Revisor falla, la nota se publica igualmente: perder una nota por un fallo de la
@@ -15,7 +15,7 @@ from agents.events import Emitter
 from agents.researcher import Finding
 from agents.reviewer import Review, needs_revision, review_note
 from agents.writer import ProposalCallback, draft_note, publish
-from app.contracts import Proposal
+from app.contracts import Proposal, ProposalReview
 from llm import LLMError
 from router import SmartRoute
 from vault import Vault
@@ -52,6 +52,7 @@ async def write_and_review(
             await emitter.thought("writer", f"No pude redactar «{name}»: {exc}")
             continue
 
+        first_draft = proposal
         review = await safe_review(proposal, finding, router, emitter)
         if needs_revision(review) and finding.sources:
             assert review is not None  # needs_revision ya lo garantiza; ayuda al tipado
@@ -78,6 +79,18 @@ async def write_and_review(
                 proposal = revised
                 review = await safe_review(revised, finding, router, emitter) or review
 
+        if review is not None:
+            # La revisión viaja con la nota: la interfaz muestra «5/5 respaldadas» y si se corrigió.
+            proposal = proposal.model_copy(
+                update={
+                    "review": ProposalReview(
+                        claims=review.claims,
+                        supported=review.supported,
+                        issues=review.issues,
+                        revised=proposal is not first_draft,
+                    )
+                }
+            )
         await publish(proposal, emitter, on_proposal)
         result.proposals.append(proposal)
         if review is not None:

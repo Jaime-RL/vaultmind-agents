@@ -22,6 +22,7 @@ from app.contracts import (
     AgentThought,
     NodeProposed,
     Proposal,
+    ProposalReview,
     RouteDecision,
     RunFinished,
     RunStats,
@@ -110,6 +111,14 @@ el modelo entero.
     ),
 }
 
+# Resultado final del Revisor para cada nota (coincide con los eventos de más abajo).
+DEMO_REVIEWS = {
+    "p-001": ProposalReview(claims=6, supported=6, issues=[], revised=False),
+    # Corregida: la primera versión decía que el routing «ahorra siempre más del 50 %».
+    "p-002": ProposalReview(claims=4, supported=4, issues=[], revised=True),
+    "p-003": ProposalReview(claims=5, supported=5, issues=[], revised=False),
+}
+
 demo_vault = parse_vault(REPO_ROOT / "demo-vault")
 resolver = LinkResolver(list(demo_vault.notes))
 gaps_in_vault = demo_vault.unresolved_links()
@@ -129,6 +138,7 @@ for proposal_id, (title, source, body) in DEMO_NOTES.items():
         model=LARGE,
         status="pending",
         created_at=START,
+        review=DEMO_REVIEWS[proposal_id],
     )
 
 
@@ -264,33 +274,35 @@ r.tool(
 )
 r.route("researcher", "summarize_paper", "slm", SLM_REASON, (2200, 280))
 
-# --- Redactor: escribe las notas, enlazadas con la bóveda -------------------
+# --- Redactor ⇄ Revisor: cada nota se revisa ANTES de publicarla -------------
+# Igual que agents/editorial.py: si el Revisor encuentra algo sin respaldo, el Redactor
+# corrige la nota una vez y se vuelve a revisar. En la demo le pasa a «Routing de modelos».
 r.thought(
     "writer", "Redacto la nota «Function calling en SLMs» enlazándola con Tool calling y SLM."
 )
 r.route("writer", "write_note", "large", LARGE_REASON, (3200, 900), after=6.0)
+r.tool("reviewer", "verify_claims", {"proposal_id": "p-001"}, "6 de 6 afirmaciones con respaldo")
+r.route("reviewer", "verify_claims", "slm", SLM_REASON, (2100, 150))
 r.propose("p-001")
 
 r.thought("writer", "Redacto «Routing de modelos» y la conecto con Sistemas multiagente.")
 r.route("writer", "write_note", "large", LARGE_REASON, (3000, 850), after=5.5)
+r.tool("reviewer", "verify_claims", {"proposal_id": "p-002"}, "4 de 5 afirmaciones con respaldo")
+r.route("reviewer", "verify_claims", "slm", SLM_REASON, (2000, 160))
+r.thought(
+    "writer",
+    "El Revisor solo respalda 4 de 5 afirmaciones: corrijo «Routing de modelos».",
+)
+r.route("writer", "write_note", "large", LARGE_REASON, (3400, 820), after=5.0)
+r.tool("reviewer", "verify_claims", {"proposal_id": "p-002"}, "4 de 4 afirmaciones con respaldo")
+r.route("reviewer", "verify_claims", "slm", SLM_REASON, (2000, 140))
 r.propose("p-002")
 
 r.thought("writer", "Redacto «LoRA» como técnica de fine-tuning eficiente para el SLM del TFG.")
 r.route("writer", "write_note", "large", LARGE_REASON, (2800, 780), after=5.0)
-r.propose("p-003")
-
-# --- Revisor: comprueba que cada afirmación tiene fuente --------------------
-r.tool("reviewer", "verify_claims", {"proposal_id": "p-001"}, "6 de 6 afirmaciones con respaldo")
-r.route("reviewer", "verify_claims", "slm", SLM_REASON, (2100, 150))
-r.tool("reviewer", "verify_claims", {"proposal_id": "p-002"}, "4 de 5 afirmaciones con respaldo")
-r.route("reviewer", "verify_claims", "slm", SLM_REASON, (2000, 160))
-r.thought(
-    "reviewer",
-    "En «Routing de modelos» una afirmación no tiene fuente: la marco para "
-    "que la revises antes de aprobar.",
-)
 r.tool("reviewer", "verify_claims", {"proposal_id": "p-003"}, "5 de 5 afirmaciones con respaldo")
 r.route("reviewer", "verify_claims", "slm", SLM_REASON, (1900, 140))
+r.propose("p-003")
 
 # --- Fin ---------------------------------------------------------------------
 totals = summarize(

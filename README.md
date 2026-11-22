@@ -139,8 +139,29 @@ El registro completo está en [`docs/ai-log.md`](docs/ai-log.md).
 
 **Modelos:** en la URL pública, `gpt-oss-20b` y `gpt-oss-120b` en el plan gratuito de Groq; en local, por defecto, Qwen2.5 7B y 72B Instruct en OpenRouter. En ambos casos un modelo pequeño y uno grande de la misma familia, para que la comparación mida el efecto del tamaño.
 
-**Pendiente:**
+### SmartRoute con datos reales
 
-- Ejecutar las evals con la clave gratuita de Groq y pegar aquí la tabla que genera `evals/report.py`: en GitHub, pestaña **Actions → Evals → Run workflow** (necesita el secreto `LLM_API_KEY`), o en local desde `backend/` con `PYTHONPATH=. uv run python -m evals.run` y `PYTHONPATH=. uv run python -m evals.report`. El ahorro de la demo grabada usa tokens de ejemplo: es ilustrativo.
+Evals con 16 casos fijos (`backend/evals/cases.py`), lanzadas desde GitHub Actions (**Actions → Evals → Run workflow**) con el plan gratuito de Groq: SLM = `openai/gpt-oss-20b`, modelo grande = `openai/gpt-oss-120b`.
+
+| | Solo modelo grande | SmartRoute |
+| --- | --- | --- |
+| Casos resueltos | 15/16 | 15/16 |
+| Coste total (USD) | 0.00356 | 0.00310 |
+| Resueltos por el SLM sin escalar | — | 8 |
+
+**Mismo acierto con un 13 % menos de coste.** El ahorro es modesto porque en Groq el modelo grande solo cuesta el doble que el pequeño; con precios como los de OpenRouter (Qwen 7B frente a 72B, unas 3 veces más caro) la diferencia crece.
+
+| Tarea | Política | Acierto SLM | Acierto grande |
+| --- | --- | --- | --- |
+| `find_gaps` | large | 60 % / 100 % | 100 % |
+| `summarize_paper` | slm | 100 % | 100 % |
+| `write_note` | large | 100 % | 67 % |
+| `verify_claims` | slm | 100 % | 100 % |
+
+**Lo que cambiaron las evals:**
+
+- **El Explorador pasó al modelo grande.** En la primera ejecución el SLM solo acertó el 60 % de `find_gaps`, añadiendo lagunas sin relación (lo mismo que se había visto en la URL pública). En la segunda acertó el 100 %: con 5 casos hay mucha varianza. Se quedó en el grande porque ese error no lo detecta ningún validador (el JSON es correcto), así que SmartRoute nunca escalaría, y la llamada cuesta unos 0,0001 $ más.
+- **Un enlace roto que no se veía:** el modelo grande escribió `[[Fine‑tuning]]` con un guion tipográfico (U+2011) y no enlazaba con la nota `Fine-tuning`. El Redactor ahora normaliza los guiones dentro de los enlaces.
+- **Un test de las evals estaba mal:** exigía 2 enlaces por nota cuando el prompt pide no forzarlos.
 
 **Próximos pasos:** ver el backlog de la sección 2.

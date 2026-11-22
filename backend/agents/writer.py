@@ -114,7 +114,7 @@ async def draft_note(
     )
     await emitter.route(outcome.decision_event())
 
-    body = strip_markdown_fence(outcome.response.content or "")
+    body = normalize_wikilinks(strip_markdown_fence(outcome.response.content or ""))
     markdown = body.rstrip() + "\n" + sources_section(finding) + mentioned_in_section(finding)
     return Proposal(
         # Una reescritura conserva el id: para la interfaz es la misma nota.
@@ -176,6 +176,19 @@ def resolve_links(markdown: str, resolver: LinkResolver) -> list[str]:
         if target and target not in found:
             found.append(target)
     return found
+
+
+# Guiones tipográficos que los modelos usan a veces: ‐ ‑ ‒ – — y el signo menos.
+TYPOGRAPHIC_HYPHENS = str.maketrans({c: "-" for c in "\u2010\u2011\u2012\u2013\u2014\u2212"})
+
+
+def normalize_wikilinks(markdown: str) -> str:
+    """Cambia los guiones tipográficos por «-» dentro de los [[enlaces]].
+
+    En las evals con Groq, el modelo grande escribió [[Fine‑tuning]] con U+2011: se ve igual,
+    pero no enlaza con la nota «Fine-tuning». Solo se toca el interior de los enlaces.
+    """
+    return WIKILINK_RE.sub(lambda m: m.group(0).translate(TYPOGRAPHIC_HYPHENS), markdown)
 
 
 def strip_markdown_fence(text: str) -> str:

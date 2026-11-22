@@ -40,3 +40,8 @@ El flujo siempre termina con un `run_finished` o un `error`.
 ## Errores HTTP
 
 Los errores siguen el formato por defecto de FastAPI: `{"detail": "..."}` con 404 (no existe), 409 (propuesta ya resuelta) o 422 (petición inválida).
+
+## Idiomas
+
+`es`, `en`, `fr`, `de` y `pt`. `ResearchRequest.language` y `AskRequest.language` eligen el idioma del contenido (notas y respuestas); `auto`, el valor por defecto, usa el idioma en que se escribió el tema o la pregunta. `ResearchRequest.ui_language` es el idioma de los mensajes de los agentes. Cada `Proposal` y cada `AskResponse` dicen en qué idioma están.
+

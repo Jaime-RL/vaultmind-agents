@@ -9,9 +9,19 @@
       "additionalProperties": false,
       "required": ["topic"],
       "properties": {
-        "topic": { "type": "string", "minLength": 3, "maxLength": 200 }
+        "topic": { "type": "string", "minLength": 3, "maxLength": 200 },
+        "language": {
+          "description": "Idioma de las notas. auto (por defecto) = el idioma en que está escrito el tema.",
+          "$ref": "#/$defs/ContentLanguage"
+        },
+        "ui_language": {
+          "description": "Idioma de la interfaz: el de los mensajes de los agentes. Por defecto, es.",
+          "$ref": "#/$defs/Language"
+        }
       }
     },
+    "Language": { "type": "string", "enum": ["es", "en", "fr", "de", "pt"] },
+    "ContentLanguage": { "type": "string", "enum": ["auto", "es", "en", "fr", "de", "pt"] },
     "ResearchResponse": {
       "type": "object",
       "additionalProperties": false,

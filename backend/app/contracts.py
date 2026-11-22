@@ -42,8 +42,14 @@ class VaultGraph(Contract):
 # --- research.schema.json ------------------------------------------------------
 
 
+Language = Literal["es", "en", "fr", "de", "pt"]
+ContentLanguage = Literal["auto", "es", "en", "fr", "de", "pt"]
+
+
 class ResearchRequest(Contract):
     topic: str = Field(min_length=3, max_length=200)
+    language: ContentLanguage = "auto"  # idioma de las notas; auto = el del tema
+    ui_language: Language = "es"  # idioma de los mensajes de los agentes
 
 
 class ResearchResponse(Contract):
@@ -151,6 +157,7 @@ class Proposal(Contract):
     status: Literal["pending", "approved", "rejected"]
     created_at: datetime
     review: ProposalReview | None = None
+    language: Language | None = None
 
 
 class ProposalAction(Contract):
@@ -163,6 +170,7 @@ class ProposalAction(Contract):
 
 class AskRequest(Contract):
     question: str = Field(min_length=3, max_length=500)
+    language: ContentLanguage = "auto"
 
 
 class AskCitation(Contract):
@@ -177,6 +185,7 @@ class AskResponse(Contract):
     tier: Tier | None
     escalated: bool
     cost_usd: float = Field(ge=0)
+    language: Language = "es"
 
 
 # --- metrics.schema.json -------------------------------------------------------

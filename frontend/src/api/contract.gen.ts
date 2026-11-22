@@ -4,6 +4,10 @@
 
 export interface AskRequest {
   question: string
+  /**
+   * Idioma de la respuesta. auto (por defecto) = el idioma de la pregunta.
+   */
+  language?: 'auto' | 'es' | 'en' | 'fr' | 'de' | 'pt'
 }
 /**
  * This interface was referenced by `AskRoot`'s JSON-Schema
@@ -41,6 +45,10 @@ export interface AskResponse {
    */
   escalated: boolean
   cost_usd: number
+  /**
+   * Idioma en que se respondió (el elegido o el detectado).
+   */
+  language?: 'es' | 'en' | 'fr' | 'de' | 'pt'
 }
 
 /**
@@ -224,6 +232,10 @@ export interface Proposal {
    * Resultado del Revisor. Ausente o null si la nota no se pudo revisar.
    */
   review?: ProposalReview | null
+  /**
+   * Idioma en que está escrita la nota. Ausente o null en notas antiguas.
+   */
+  language?: ('es' | 'en' | 'fr' | 'de' | 'pt') | null
 }
 /**
  * This interface was referenced by `ProposalRoot`'s JSON-Schema
@@ -261,8 +273,29 @@ export interface ProposalAction {
   markdown?: string | null
 }
 
+/**
+ * This interface was referenced by `ResearchRoot`'s JSON-Schema
+ * via the `definition` "Language".
+ */
+
+export type Language = 'es' | 'en' | 'fr' | 'de' | 'pt'
+/**
+ * This interface was referenced by `ResearchRoot`'s JSON-Schema
+ * via the `definition` "ContentLanguage".
+ */
+
+export type ContentLanguage = 'auto' | 'es' | 'en' | 'fr' | 'de' | 'pt'
+
 export interface ResearchRequest {
   topic: string
+  /**
+   * Idioma de las notas. auto (por defecto) = el idioma en que está escrito el tema.
+   */
+  language?: 'auto' | 'es' | 'en' | 'fr' | 'de' | 'pt'
+  /**
+   * Idioma de la interfaz: el de los mensajes de los agentes. Por defecto, es.
+   */
+  ui_language?: 'es' | 'en' | 'fr' | 'de' | 'pt'
 }
 /**
  * This interface was referenced by `ResearchRoot`'s JSON-Schema

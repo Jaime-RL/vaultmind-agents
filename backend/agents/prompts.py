@@ -10,9 +10,11 @@ tienen nota propia.
 
 1. "topic_note": título corto (2-6 palabras) para una nota nueva sobre el TEMA. Si una laguna trata
    exactamente del tema, usa su nombre tal cual.
-2. "selected": de 0 a {max_related} lagunas DIRECTAMENTE relacionadas con el tema. Si ninguna lo
-   está, devuelve una lista vacía: es mejor no elegir que elegir algo sin relación.
-   Copia los nombres EXACTAMENTE como aparecen en la lista. No inventes lagunas.
+2. "selected": de 0 a {max_related} lagunas DIRECTAMENTE relacionadas con el tema. Una laguna está
+   relacionada solo si un artículo sobre el tema la usaría como parte del método o la necesitaría
+   para explicarlo. Que ambas sean "cosas de LLMs" NO basta: con el tema "multi-token prediction",
+   lagunas como "Llama", "Qwen" o "Function calling" NO están relacionadas. Lo normal es elegir 0
+   o 1. Copia los nombres EXACTAMENTE como aparecen en la lista. No inventes lagunas.
 
 Responde SOLO con este JSON, sin texto antes ni después:
 {{"topic_note": "Título de la nota", "selected": ["Laguna relacionada"], "reasoning": "una frase"}}"""

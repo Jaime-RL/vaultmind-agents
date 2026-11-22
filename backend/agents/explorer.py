@@ -13,7 +13,7 @@ Es una tarea acotada, así que SmartRoute la manda primero al modelo pequeño.
 
 import json
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from agents.events import Emitter
 from agents.prompts import EXPLORER
@@ -31,6 +31,9 @@ class Gap:
 
     name: str  # título de la nota que se propondrá, p. ej. "LoRA"
     mentioned_in: list[str]  # ids de las notas que lo enlazan (vacío para el tema nuevo)
+    # True para el tema que pidió el usuario; False para las lagunas añadidas por relación.
+    # Una laguna sin fuentes se descarta; el tema se investiga siempre (ver researcher.py).
+    is_topic: bool = field(default=False, compare=False)
 
 
 async def explore(
@@ -88,10 +91,10 @@ def topic_concept(title: str, gaps: dict[str, list[str]], vault: Vault) -> list[
     """La nota del tema: reutiliza una laguna si coincide; si ya existe una nota, no se repite."""
     for name, mentions in gaps.items():
         if name.lower() == title.lower():
-            return [Gap(name=name, mentioned_in=mentions)]
+            return [Gap(name=name, mentioned_in=mentions, is_topic=True)]
     if LinkResolver(list(vault.notes)).resolve(title) is not None:
         return []  # ya hay una nota con ese título: proponer otra la duplicaría
-    return [Gap(name=title, mentioned_in=[])] if title else []
+    return [Gap(name=title, mentioned_in=[], is_topic=True)] if title else []
 
 
 def explanation(topic_title: str, concepts: list[Gap], reasoning: str) -> str:

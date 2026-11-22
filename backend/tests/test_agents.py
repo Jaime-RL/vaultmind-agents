@@ -171,13 +171,36 @@ async def test_researcher_does_not_repeat_identical_searches(make_router, emitte
     assert "Ya hiciste esta búsqueda" in fake.calls[2].messages[-1]["content"]
 
 
+async def test_related_gap_without_sources_is_dropped_but_the_topic_is_kept(
+    make_router, emitter, sink
+):
+    """Regresión: «Function calling en SLMs» se elegía para «multi-token prediction» y se
+    escribía de memoria, sin ninguna fuente."""
+    topic = Gap(name="Multi-token prediction", mentioned_in=[], is_topic=True)
+    no_sources = {"summary": "Nada útil.", "sources": []}
+    router, _ = make_router([final(no_sources), final(no_sources)])
+
+    findings = await research(
+        topic="mtp",
+        gaps=[topic, LORA],
+        router=router,
+        emitter=emitter,
+        search_tool=fake_search_tool(),
+    )
+
+    assert [f.gap.name for f in findings] == ["Multi-token prediction"]
+    assert any("Descarto «LoRA»" in e.text for e in sink.events if e.type == "agent_thought")
+
+
 async def test_researcher_continues_when_one_gap_fails(make_router, emitter, sink):
     router, _ = make_router(
         [
             LLMError("caído"),  # LoRA: falla el SLM...
             LLMError("también"),  # ...y el grande
             calls_tool("search_arxiv", query="routing"),
-            final({"summary": "Routing elige modelo.", "sources": []}),
+            final(
+                {"summary": "Routing elige modelo.", "sources": [{"title": "R", "url": PAPER_URL}]}
+            ),
         ]
     )
 

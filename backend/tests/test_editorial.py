@@ -129,7 +129,7 @@ async def test_failed_rewrite_keeps_the_first_draft(make_router, emitter, vault)
 
 @pytest.mark.parametrize(
     ("claims", "supported", "expected"),
-    [(5, 4, False), (5, 3, True), (0, 0, False), (2, 0, True)],
+    [(5, 5, False), (5, 4, True), (0, 0, False), (2, 0, True)],  # 4 de 5: regresión «Qwen-3D»
 )
 def test_needs_revision(claims, supported, expected):
     assert needs_revision(Review("p", claims, supported)) is expected

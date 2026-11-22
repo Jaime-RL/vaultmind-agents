@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { Proposal } from '../../api/contract.gen'
 import { plural, shortModel } from '../agents-panel/describeEvent'
 import { AGENT_LABELS } from '../graph/colors'
+import { ConfidenceBadge, ReviewDetails } from './ConfidenceBadge'
 import { NoteMarkdown } from './NoteMarkdown'
 import type { ProposalsState } from './useProposals'
 
@@ -106,10 +107,12 @@ function ProposalCard({ proposal, open, busy, existing, onToggle, onResolve }: C
           {AGENT_LABELS[proposal.agent]} ·{' '}
           {shortModel(proposal.model)} · {plural(proposal.sources.length, 'fuente')}
         </span>
+        <ConfidenceBadge proposal={proposal} />
       </button>
 
       {open && (
         <div id={bodyId} className="proposal__body">
+          <ReviewDetails proposal={proposal} />
           <NoteMarkdown markdown={proposal.markdown} existing={existing} />
 
           {extraSources.length > 0 && (

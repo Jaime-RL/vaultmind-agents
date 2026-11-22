@@ -95,3 +95,9 @@ Materia prima para la sección «Cómo se construyó con IA» del README. Apunta
 - **Qué funcionó:** adjuntar la revisión final a la `Proposal` justo antes de publicarla: la nota y su «5/5 respaldadas» viajan juntas a la base de datos y a la API, sin endpoints nuevos. La demo se regeneró con el mismo flujo que el código real (escribir → revisar → corregir → publicar), incluida una corrección en «Routing de modelos» para que el vídeo la enseñe.
 - **Qué costó o falló:** un test de la demo contaba 10 tareas exactas; con la corrección son 12. Era una cifra mágica: ahora el comentario explica de dónde sale.
 - **Qué cambiaría:** generar ese número desde el propio fixture en lugar de escribirlo a mano.
+
+### 2026-11-22 · Persona A (agente autónomo) · Fase 3: confianza visible en cada nota
+- **Prompt:** roadmap autónomo, fase 3 (frontend, para revisión de Iván).
+- **Qué funcionó:** una insignia en la cabecera de cada tarjeta («✓ 5/5 respaldadas · corregida») que se ve sin abrir la nota. El color nunca va solo: lleva también icono y texto, para que se entienda con daltonismo. Reutiliza los colores de estado que ya tenía la interfaz (verde, ámbar, rojo). Comprobado con capturas de Playwright contra el servidor real en modo demo, no solo con tests.
+- **Qué costó o falló:** react-markdown muestra los avisos de Obsidian (`> [!warning]`) como una cita con el texto «[!warning]» literal. Se resolvió con un componente `blockquote` propio que detecta el marcador, sin añadir dependencias ni HTML sin sanear.
+- **Qué cambiaría:** el aviso se muestra como texto plano (pierde negritas o enlaces dentro del aviso); para avisos largos haría falta un plugin de remark.

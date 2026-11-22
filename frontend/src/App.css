@@ -741,3 +741,78 @@ code {
   border-radius: 50%;
   vertical-align: baseline;
 }
+
+/* --- Confianza de la nota (revisión) ------------------------------------- */
+.confidence {
+  align-self: flex-start;
+  display: inline-block;
+  margin-top: 0.3rem;
+  padding: 0.05rem 0.5rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.confidence--high {
+  color: var(--ok);
+}
+.confidence--medium {
+  color: var(--checking);
+}
+.confidence--low {
+  color: var(--down);
+}
+.confidence--unknown {
+  color: var(--muted);
+}
+.confidence__revised {
+  font-weight: 400;
+}
+
+.review-details {
+  margin: 0.6rem 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.review-details--unknown {
+  color: var(--checking);
+}
+.review-details__revised {
+  margin: 0 0 0.4rem;
+  color: var(--text);
+}
+.review-details details summary {
+  cursor: pointer;
+  color: var(--checking);
+}
+.review-details ul {
+  margin: 0.3rem 0 0;
+  padding-left: 1.2rem;
+}
+
+/* --- Avisos de Obsidian (> [!warning] …) ---------------------------------- */
+.callout {
+  margin: 0.8rem 0;
+  padding: 0.5rem 0.75rem;
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background: var(--surface-2);
+}
+.callout p {
+  margin: 0;
+}
+.callout__title {
+  font-weight: 600;
+}
+.callout--warning,
+.callout--caution {
+  border-left-color: var(--checking);
+}
+.callout--danger,
+.callout--error {
+  border-left-color: var(--down);
+}
+.callout--tip,
+.callout--success {
+  border-left-color: var(--ok);
+}

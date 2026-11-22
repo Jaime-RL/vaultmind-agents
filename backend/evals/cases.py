@@ -138,7 +138,7 @@ def researcher_case(case_id: str, concept: str, papers: list[dict]) -> Case:
             {"role": "system", "content": RESEARCHER},
             {
                 "role": "user",
-                "content": f"Tema del TFG: chatbot de clima con SLMs\n"
+                "content": f"Tema de la investigación: chatbot de clima con SLMs\n"
                 f"Concepto a investigar: {concept}",
             },  # fmt: skip
             {
@@ -190,7 +190,8 @@ def writer_case(case_id: str, title: str, summary: str) -> Case:
             {"role": "system", "content": WRITER.replace("{title}", title)},
             {
                 "role": "user",
-                "content": f"Tema del TFG: chatbot de clima con SLMs\nConcepto: {title}\n\n"
+                "content": "Tema de la investigación: chatbot de clima con SLMs\n"
+                f"Concepto: {title}\n\n"
                 f"Resumen de la investigación:\n{summary}\n\nFuentes:\n- (ver resumen)\n\n"
                 "Notas existentes:\n" + "\n".join(f"- {t}" for t in EXISTING_TITLES),
             },

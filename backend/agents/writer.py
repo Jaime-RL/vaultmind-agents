@@ -13,7 +13,7 @@ from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
 
 from agents.events import Emitter
-from agents.prompts import WRITER
+from agents.prompts import WRITER, WRITER_NO_SOURCES, WRITER_REVISION
 from agents.researcher import Finding
 from app.contracts import Proposal
 from llm import LLMError, LLMResponse
@@ -69,50 +69,90 @@ async def write_note(
     emitter: Emitter,
     on_proposal: ProposalCallback | None = None,
 ) -> Proposal:
+    """Redacta y publica (guarda + node_proposed) una nota, sin pasar por el Revisor."""
+    proposal = await draft_note(topic, finding, titles, resolver, router, emitter)
+    await publish(proposal, emitter, on_proposal)
+    return proposal
+
+
+async def draft_note(
+    topic: str,
+    finding: Finding,
+    titles: list[str],
+    resolver: LinkResolver,
+    router: SmartRoute,
+    emitter: Emitter,
+    *,
+    previous: Proposal | None = None,
+    issues: list[str] | None = None,
+) -> Proposal:
+    """Redacta la nota (o la reescribe si se pasa `previous` + `issues`) sin publicarla."""
     title = finding.gap.name
-    await emitter.thought("writer", f"Redacto la nota «{title}».")
-    sources = "\n".join(f"- {s.title} ({s.url})" for s in finding.sources) or "- (ninguna)"
+    if previous is None:
+        await emitter.thought("writer", f"Redacto la nota «{title}».")
+    system = WRITER.replace("{title}", title)
+    if not finding.sources:
+        system += WRITER_NO_SOURCES
+    user = (
+        f"Tema de la investigación: {topic}\n"
+        f"Concepto: {title}\n\n"
+        f"Resumen de la investigación:\n{finding.summary}\n\n"
+        f"Fuentes (con su abstract):\n{evidence(finding)}\n\n"
+        f"Notas existentes:\n" + "\n".join(f"- {t}" for t in titles)
+    )
+    if previous is not None:
+        user += WRITER_REVISION.format(
+            previous=note_body(previous.markdown),
+            issues="\n".join(f"- {i}" for i in issues or []),
+        )
     outcome = await router.complete(
         run_id=emitter.run_id,
         agent="writer",
         task="write_note",
-        messages=[
-            {"role": "system", "content": WRITER.replace("{title}", title)},
-            {
-                "role": "user",
-                "content": (
-                    f"Tema del TFG: {topic}\n"
-                    f"Concepto: {title}\n\n"
-                    f"Resumen de la investigación:\n{finding.summary}\n\n"
-                    f"Fuentes:\n{sources}\n\n"
-                    f"Notas existentes:\n" + "\n".join(f"- {t}" for t in titles)
-                ),
-            },
-        ],
+        messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
         validate=require_markdown_note,
     )
     await emitter.route(outcome.decision_event())
 
     body = strip_markdown_fence(outcome.response.content or "")
     markdown = body.rstrip() + "\n" + sources_section(finding) + mentioned_in_section(finding)
-    links = resolve_links(markdown, resolver)
-
-    proposal = Proposal(
-        id=f"p-{uuid.uuid4().hex[:8]}",
+    return Proposal(
+        # Una reescritura conserva el id: para la interfaz es la misma nota.
+        id=previous.id if previous is not None else f"p-{uuid.uuid4().hex[:8]}",
         run_id=emitter.run_id,
         title=title,
         markdown=markdown,
         sources=[{"title": s.title, "url": s.url} for s in finding.sources],
-        links=links,
+        links=resolve_links(markdown, resolver),
         agent="writer",
         model=outcome.metric.model,
         status="pending",
         created_at=datetime.now(UTC),
     )
+
+
+async def publish(
+    proposal: Proposal, emitter: Emitter, on_proposal: ProposalCallback | None = None
+) -> None:
+    """Guarda la nota y DESPUÉS emite node_proposed (la interfaz la pide al recibir el evento)."""
     if on_proposal is not None:
         await on_proposal(proposal)
     await emitter.proposed(proposal.id, proposal.title, proposal.links)
-    return proposal
+
+
+def evidence(finding: Finding, max_chars: int = 800) -> str:
+    """Fuentes verificadas con su abstract: es la evidencia con la que se escribe y se revisa."""
+    if not finding.sources:
+        return "- (ninguna)"
+    return "\n".join(
+        f"- {s.title} ({s.url})" + (f"\n  Abstract: {s.abstract[:max_chars]}" if s.abstract else "")
+        for s in finding.sources
+    )
+
+
+def note_body(markdown: str) -> str:
+    """La nota sin las secciones que añade el código (fuentes y «Mencionada en»)."""
+    return re.split(r"\n## Fuentes\n|\n\*Mencionada en:", markdown, maxsplit=1)[0].strip()
 
 
 def sources_section(finding: Finding) -> str:

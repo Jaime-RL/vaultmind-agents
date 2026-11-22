@@ -141,6 +141,6 @@ El registro completo está en [`docs/ai-log.md`](docs/ai-log.md).
 
 **Pendiente:**
 
-- Ejecutar las evals con la clave gratuita de Groq y pegar aquí la tabla que genera `evals/report.py` (desde `backend/`: `PYTHONPATH=. uv run python -m evals.run` y después `PYTHONPATH=. uv run python -m evals.report`). El ahorro de la demo grabada usa tokens de ejemplo: es ilustrativo.
+- Ejecutar las evals con la clave gratuita de Groq y pegar aquí la tabla que genera `evals/report.py`: en GitHub, pestaña **Actions → Evals → Run workflow** (necesita el secreto `LLM_API_KEY`), o en local desde `backend/` con `PYTHONPATH=. uv run python -m evals.run` y `PYTHONPATH=. uv run python -m evals.report`. El ahorro de la demo grabada usa tokens de ejemplo: es ilustrativo.
 
 **Próximos pasos:** ver el backlog de la sección 2.

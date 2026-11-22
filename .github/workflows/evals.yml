@@ -1,0 +1,57 @@
+# Evals de SmartRoute con modelos reales (Groq, plan gratuito).
+# NO corre en cada PR (CLAUDE.md, regla 1): solo a mano, desde la pestaña Actions →
+# «Evals» → «Run workflow». Necesita el secreto LLM_API_KEY en
+# Settings → Secrets and variables → Actions.
+name: Evals
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  evals:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      # Mismos modelos y precios que la URL pública (render.yaml).
+      LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+      LLM_BASE_URL: https://api.groq.com/openai/v1
+      SLM_MODEL: openai/gpt-oss-20b
+      LARGE_MODEL: openai/gpt-oss-120b
+      LLM_REASONING_EFFORT: low
+      SLM_PRICE_INPUT: "0.075"
+      SLM_PRICE_OUTPUT: "0.30"
+      LARGE_PRICE_INPUT: "0.15"
+      LARGE_PRICE_OUTPUT: "0.60"
+      PYTHONPATH: .
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - run: uv sync --frozen
+      - name: Comprobar el secreto
+        run: |
+          if [ -z "$LLM_API_KEY" ]; then
+            echo "::error::Falta el secreto LLM_API_KEY (Settings → Secrets and variables → Actions)"
+            exit 1
+          fi
+      - name: Ejecutar las evals
+        run: uv run python -m evals.run
+      - name: Tabla para el README
+        run: uv run python -m evals.report | tee report.md
+      - name: Publicar el resultado en el resumen del job
+        run: |
+          cat report.md >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "## Detalle" >> "$GITHUB_STEP_SUMMARY"
+          cat $(ls -t evals/results/*.md | head -1) >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: evals-results
+          path: backend/evals/results/

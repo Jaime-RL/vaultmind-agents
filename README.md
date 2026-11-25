@@ -2,6 +2,8 @@
 
 Multi-agent research copilot that grows your Obsidian vault, routing each task between small and large LLMs to cut cost.
 
+**In short:** VaultMind is a multi-agent system (Explorer, Researcher, Writer and Reviewer agents) that finds gaps in an Obsidian vault and proposes new linked notes, backed by arXiv papers, for you to approve. Its SmartRoute router sends each LLM call to a small model (gpt-oss-20b) or a large one (gpt-oss-120b) on Groq and escalates when needed, making it 13–28 % cheaper than using only the large model, with the same accuracy in our evals. **Live demo:** <https://vaultmind-xymm.onrender.com> · **Video:** [LinkedIn post](https://www.linkedin.com/feed/update/urn:li:activity:7531342149246857216/)
+
 ![Demo de VaultMind: se lanza un tema de ejemplo, los agentes investigan, el marcador de SmartRoute cuenta el ahorro, se abre una nota con su insignia de confianza y se pregunta a la bóveda](docs/demo.gif)
 
 ## 1. Qué es
